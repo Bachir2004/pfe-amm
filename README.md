@@ -214,7 +214,7 @@ pfe-amm/
 ## 👨‍💻 Auteur
 
 **EL BACHIR BABOUZID**
-Projet de Fin d'Études — Génie Informatique — 2026
+Projet de Fin d'Études — Smart Information and Communication Technology — INPT — 2026
 
 <div align="center">
 
