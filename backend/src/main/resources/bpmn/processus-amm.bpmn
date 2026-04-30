@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="Definitions_processus_amm"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.14.0">
+
+  <bpmn:process id="processus-amm" name="Processus AMM Pharmaceutique" isExecutable="true">
+
+    <!-- ===== START EVENT ===== -->
+    <bpmn:startEvent id="StartEvent_1" name="Demande AMM&#10;Déposée">
+      <bpmn:outgoing>Flow_start_verif</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- ===== USER TASK : Vérification Admin ===== -->
+    <bpmn:userTask id="verification-admin" name="Vérification&#10;Administrative">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="verification-admin" retries="3"/>
+        <zeebe:assignmentDefinition assignee="admin"/>
+        <zeebe:taskHeaders>
+          <zeebe:header key="description" value="Vérifier la complétude du dossier AMM"/>
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_start_verif</bpmn:incoming>
+      <bpmn:incoming>Flow_retour_verif</bpmn:incoming>
+      <bpmn:outgoing>Flow_verif_gateway</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ===== GATEWAY : Dossier complet ? ===== -->
+    <bpmn:exclusiveGateway id="gateway-dossier-complet" name="Dossier&#10;Complet ?">
+      <bpmn:incoming>Flow_verif_gateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_complet</bpmn:outgoing>
+      <bpmn:outgoing>Flow_incomplet</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- ===== USER TASK : Évaluation Technique ===== -->
+    <bpmn:userTask id="evaluation" name="Évaluation&#10;Technique">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="evaluation" retries="3"/>
+        <zeebe:assignmentDefinition assignee="evaluateur"/>
+        <zeebe:taskHeaders>
+          <zeebe:header key="description" value="Évaluer scientifiquement le dossier AMM"/>
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_complet</bpmn:incoming>
+      <bpmn:outgoing>Flow_eval_validation</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ===== USER TASK : Validation Direction ===== -->
+    <bpmn:userTask id="validation-direction" name="Validation&#10;Direction">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="validation-direction" retries="3"/>
+        <zeebe:assignmentDefinition assignee="directeur"/>
+        <zeebe:taskHeaders>
+          <zeebe:header key="description" value="Décision finale de la direction sur l'AMM"/>
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_eval_validation</bpmn:incoming>
+      <bpmn:outgoing>Flow_validation_decision</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ===== GATEWAY : Décision ===== -->
+    <bpmn:exclusiveGateway id="gateway-decision" name="Décision ?">
+      <bpmn:incoming>Flow_validation_decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_approuve</bpmn:outgoing>
+      <bpmn:outgoing>Flow_rejete</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- ===== SERVICE TASK : Notification Approbation ===== -->
+    <bpmn:serviceTask id="notification-approbation-task" name="Notification&#10;Approbation">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="notification-approbation" retries="3"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_approuve</bpmn:incoming>
+      <bpmn:outgoing>Flow_approbation_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ===== END EVENT : AMM Approuvée ===== -->
+    <bpmn:endEvent id="EndEvent_approuve" name="AMM&#10;Approuvée">
+      <bpmn:incoming>Flow_approbation_end</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ===== SERVICE TASK : Notification Rejet ===== -->
+    <bpmn:serviceTask id="notification-rejet-task" name="Notification&#10;Rejet">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="notification-rejet" retries="3"/>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_rejete</bpmn:incoming>
+      <bpmn:outgoing>Flow_rejet_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- ===== END EVENT : AMM Rejetée ===== -->
+    <bpmn:endEvent id="EndEvent_rejete" name="AMM&#10;Rejetée">
+      <bpmn:incoming>Flow_rejet_end</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- ===== BRANCHE INCOMPLÈTE ===== -->
+
+    <!-- USER TASK : Demande Complément -->
+    <bpmn:userTask id="demande-complement" name="Demande de&#10;Complément">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="demande-complement" retries="3"/>
+        <zeebe:assignmentDefinition assignee="admin"/>
+        <zeebe:taskHeaders>
+          <zeebe:header key="description" value="Notifier le laboratoire des documents manquants"/>
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_incomplet</bpmn:incoming>
+      <bpmn:outgoing>Flow_complement_retour</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- USER TASK : Retour Laboratoire -->
+    <bpmn:userTask id="retour-laboratoire" name="Retour&#10;Laboratoire">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="retour-laboratoire" retries="3"/>
+        <zeebe:assignmentDefinition assignee="laboratoire"/>
+        <zeebe:taskHeaders>
+          <zeebe:header key="description" value="Le laboratoire soumet les documents complémentaires"/>
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_complement_retour</bpmn:incoming>
+      <bpmn:outgoing>Flow_retour_verif</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- ===== SEQUENCE FLOWS ===== -->
+    <bpmn:sequenceFlow id="Flow_start_verif"
+                       sourceRef="StartEvent_1"
+                       targetRef="verification-admin"/>
+
+    <bpmn:sequenceFlow id="Flow_verif_gateway"
+                       sourceRef="verification-admin"
+                       targetRef="gateway-dossier-complet"/>
+
+    <bpmn:sequenceFlow id="Flow_complet" name="Complet"
+                       sourceRef="gateway-dossier-complet"
+                       targetRef="evaluation">
+      <bpmn:conditionExpression>=dossierComplet</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_incomplet" name="Incomplet"
+                       sourceRef="gateway-dossier-complet"
+                       targetRef="demande-complement">
+      <bpmn:conditionExpression>=not(dossierComplet)</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_eval_validation"
+                       sourceRef="evaluation"
+                       targetRef="validation-direction"/>
+
+    <bpmn:sequenceFlow id="Flow_validation_decision"
+                       sourceRef="validation-direction"
+                       targetRef="gateway-decision"/>
+
+    <bpmn:sequenceFlow id="Flow_approuve" name="Approuvé"
+                       sourceRef="gateway-decision"
+                       targetRef="notification-approbation-task">
+      <bpmn:conditionExpression>=decision = "APPROUVE"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_rejete" name="Rejeté"
+                       sourceRef="gateway-decision"
+                       targetRef="notification-rejet-task">
+      <bpmn:conditionExpression>=decision = "REJETE"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_approbation_end"
+                       sourceRef="notification-approbation-task"
+                       targetRef="EndEvent_approuve"/>
+
+    <bpmn:sequenceFlow id="Flow_rejet_end"
+                       sourceRef="notification-rejet-task"
+                       targetRef="EndEvent_rejete"/>
+
+    <bpmn:sequenceFlow id="Flow_complement_retour"
+                       sourceRef="demande-complement"
+                       targetRef="retour-laboratoire"/>
+
+    <bpmn:sequenceFlow id="Flow_retour_verif"
+                       sourceRef="retour-laboratoire"
+                       targetRef="verification-admin"/>
+
+  </bpmn:process>
+
+  <!-- ===== DIAGRAM INTERCHANGE ===== -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="processus-amm">
+
+      <!-- Start Event -->
+      <bpmndi:BPMNShape id="Shape_StartEvent_1" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="112" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="135" y="155" width="70" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Vérification Admin -->
+      <bpmndi:BPMNShape id="Shape_verification_admin" bpmnElement="verification-admin">
+        <dc:Bounds x="250" y="90" width="120" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway Dossier Complet -->
+      <bpmndi:BPMNShape id="Shape_gateway_dossier" bpmnElement="gateway-dossier-complet" isMarkerVisible="true">
+        <dc:Bounds x="435" y="105" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="418" y="162" width="84" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Évaluation -->
+      <bpmndi:BPMNShape id="Shape_evaluation" bpmnElement="evaluation">
+        <dc:Bounds x="560" y="90" width="120" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <!-- Validation Direction -->
+      <bpmndi:BPMNShape id="Shape_validation_direction" bpmnElement="validation-direction">
+        <dc:Bounds x="750" y="90" width="120" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <!-- Gateway Decision -->
+      <bpmndi:BPMNShape id="Shape_gateway_decision" bpmnElement="gateway-decision" isMarkerVisible="true">
+        <dc:Bounds x="945" y="105" width="50" height="50"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="945" y="75" width="50" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Notification Approbation -->
+      <bpmndi:BPMNShape id="Shape_notif_approbation" bpmnElement="notification-approbation-task">
+        <dc:Bounds x="1070" y="60" width="120" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <!-- End Event Approuvé -->
+      <bpmndi:BPMNShape id="Shape_end_approuve" bpmnElement="EndEvent_approuve">
+        <dc:Bounds x="1262" y="82" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1245" y="125" width="70" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Notification Rejet -->
+      <bpmndi:BPMNShape id="Shape_notif_rejet" bpmnElement="notification-rejet-task">
+        <dc:Bounds x="1070" y="200" width="120" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <!-- End Event Rejeté -->
+      <bpmndi:BPMNShape id="Shape_end_rejete" bpmnElement="EndEvent_rejete">
+        <dc:Bounds x="1262" y="222" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1247" y="265" width="66" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <!-- Demande Complément -->
+      <bpmndi:BPMNShape id="Shape_demande_complement" bpmnElement="demande-complement">
+        <dc:Bounds x="435" y="310" width="120" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <!-- Retour Laboratoire -->
+      <bpmndi:BPMNShape id="Shape_retour_laboratoire" bpmnElement="retour-laboratoire">
+        <dc:Bounds x="250" y="310" width="120" height="80"/>
+        <bpmndi:BPMNLabel/>
+      </bpmndi:BPMNShape>
+
+      <!-- Sequence Flow Edges -->
+      <bpmndi:BPMNEdge id="Edge_start_verif" bpmnElement="Flow_start_verif">
+        <di:waypoint x="188" y="130"/>
+        <di:waypoint x="250" y="130"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_verif_gateway" bpmnElement="Flow_verif_gateway">
+        <di:waypoint x="370" y="130"/>
+        <di:waypoint x="435" y="130"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_complet" bpmnElement="Flow_complet">
+        <di:waypoint x="485" y="130"/>
+        <di:waypoint x="560" y="130"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="498" y="112" width="40" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_incomplet" bpmnElement="Flow_incomplet">
+        <di:waypoint x="460" y="155"/>
+        <di:waypoint x="460" y="310"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="463" y="230" width="50" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_eval_validation" bpmnElement="Flow_eval_validation">
+        <di:waypoint x="680" y="130"/>
+        <di:waypoint x="750" y="130"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_validation_decision" bpmnElement="Flow_validation_decision">
+        <di:waypoint x="870" y="130"/>
+        <di:waypoint x="945" y="130"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_approuve" bpmnElement="Flow_approuve">
+        <di:waypoint x="970" y="105"/>
+        <di:waypoint x="970" y="100"/>
+        <di:waypoint x="1070" y="100"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="990" y="82" width="52" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_rejete" bpmnElement="Flow_rejete">
+        <di:waypoint x="970" y="155"/>
+        <di:waypoint x="970" y="240"/>
+        <di:waypoint x="1070" y="240"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="990" y="195" width="38" height="14"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_approbation_end" bpmnElement="Flow_approbation_end">
+        <di:waypoint x="1190" y="100"/>
+        <di:waypoint x="1262" y="100"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_rejet_end" bpmnElement="Flow_rejet_end">
+        <di:waypoint x="1190" y="240"/>
+        <di:waypoint x="1262" y="240"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_complement_retour" bpmnElement="Flow_complement_retour">
+        <di:waypoint x="435" y="350"/>
+        <di:waypoint x="370" y="350"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_retour_verif" bpmnElement="Flow_retour_verif">
+        <di:waypoint x="310" y="310"/>
+        <di:waypoint x="310" y="170"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

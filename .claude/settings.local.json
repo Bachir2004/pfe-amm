@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where mvn *)",
+      "Bash(java -version)",
+      "Bash(where java *)",
+      "Bash(cmd.exe /c \"java -version 2>&1 && where mvn 2>&1 && where java 2>&1\")",
+      "Bash(cmd.exe /c \"java -version\")",
+      "Bash(cmd.exe /c \"where mvn\")",
+      "Bash(cmd.exe /c \"dir \\\\\"C:\\\\Program Files\\\\Java\\\\\" 2>&1\")",
+      "Bash(cmd.exe /c \"dir \\\\\"C:\\\\Program Files\\\\Microsoft\\\\\" 2>&1\")",
+      "Bash(powershell.exe -Command \"Get-Command java -ErrorAction SilentlyContinue; Get-Command mvn -ErrorAction SilentlyContinue\")",
+      "Bash(powershell.exe -Command \"Test-Path 'C:\\\\Program Files\\\\Java'; Test-Path 'C:\\\\Program Files\\\\Eclipse Adoptium'; Test-Path 'C:\\\\Program Files\\\\Microsoft\\\\jdk-17*'\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Program Files' | Select-Object Name\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Program Files\\\\Oracle' | Select-Object Name; Get-ChildItem 'C:\\\\Program Files\\\\Microsoft' | Select-Object Name\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\' | Select-Object Name\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Program Files \\(x86\\)' | Select-Object Name\")",
+      "Bash(powershell.exe -Command \"winget install Microsoft.OpenJDK.17 --accept-source-agreements --accept-package-agreements\")",
+      "Bash(powershell.exe -Command \"winget install Apache.Maven --accept-source-agreements --accept-package-agreements\")",
+      "Bash(powershell.exe -Command \"winget search maven\")",
+      "Bash(powershell.exe -Command ' *)",
+      "Bash(powershell.exe -Command \"Get-Process java -ErrorAction SilentlyContinue | Select-Object Id, CPU\")",
+      "Bash(powershell.exe -Command \"Stop-Process -Name java -Force -ErrorAction SilentlyContinue; Write-Host 'Java stopped'\")",
+      "Bash(cmd.exe /c \"set JAVA_HOME=C:\\\\Program Files\\\\Microsoft\\\\jdk-17.0.18.8-hotspot && set PATH=%JAVA_HOME%\\\\bin;%USERPROFILE%\\\\maven\\\\apache-maven-3.9.6\\\\bin;%PATH% && cd C:\\\\Users\\\\pc\\\\Documents\\\\pfe-amm\\\\backend && start /B mvn spring-boot:run > C:\\\\Users\\\\pc\\\\Documents\\\\pfe-amm\\\\app.log 2>&1\")",
+      "Bash(curl -sf http://localhost:8080/actuator/health)",
+      "Bash(curl -s http://localhost:8080/actuator/health)"
+    ]
+  }
+}

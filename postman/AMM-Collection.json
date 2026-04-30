@@ -1,0 +1,384 @@
+{
+  "info": {
+    "_postman_id": "amm-collection-2026",
+    "name": "🏥 AMM — AMMPS API Tests",
+    "description": "Collection complète de tests API pour le Système de Gestion des AMM — AMMPS\nPFE 2026 — CDG Incept\n\nCouvre : Authentification · Dossiers AMM · Workflow · Statistiques · Monitoring",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+
+    {
+      "name": "🔐 Groupe 1 — Authentification",
+      "item": [
+
+        {
+          "name": "01 — Register Laboratoire",
+          "event": [
+            { "listen": "prerequest", "script": { "exec": [
+              "pm.environment.set('regEmail', 'labo_' + Date.now() + '@amm.ma');"
+            ], "type": "text/javascript" }},
+            { "listen": "test", "script": { "exec": [
+              "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+              "pm.test('Token présent', () => { const j = pm.response.json(); pm.expect(j).to.have.property('token'); });",
+              "pm.test('Rôle LABORATOIRE', () => pm.expect(pm.response.json().role).to.eql('LABORATOIRE'));"
+            ], "type": "text/javascript" }}
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Test Labo User\",\n  \"email\": \"{{regEmail}}\",\n  \"password\": \"test123\",\n  \"nomLaboratoire\": \"Test Pharma SA\",\n  \"typeLaboratoire\": \"LABORATOIRE_NATIONAL\",\n  \"adresse\": \"Zone Industrielle, Casablanca\",\n  \"telephone\": \"+212600000000\",\n  \"ice\": \"000123456789012\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api","auth","register"] }
+          }
+        },
+
+        {
+          "name": "02 — Login Admin",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Token JWT reçu', () => { const j = pm.response.json(); pm.expect(j.token).to.be.a('string').and.not.empty; pm.environment.set('adminToken', j.token); });",
+            "pm.test('Rôle ADMIN', () => pm.expect(pm.response.json().role).to.eql('ADMIN'));",
+            "pm.test('Temps de réponse < 1s', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@amm.ma\",\n  \"password\": \"admin123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          }
+        },
+
+        {
+          "name": "03 — Login Évaluateur",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Token JWT reçu', () => { const j = pm.response.json(); pm.expect(j.token).to.be.a('string').and.not.empty; pm.environment.set('evalToken', j.token); });",
+            "pm.test('Rôle EVALUATEUR', () => pm.expect(pm.response.json().role).to.eql('EVALUATEUR'));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"evaluateur@amm.ma\",\n  \"password\": \"eval123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          }
+        },
+
+        {
+          "name": "04 — Login Direction",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Token JWT reçu', () => { const j = pm.response.json(); pm.expect(j.token).to.be.a('string').and.not.empty; pm.environment.set('dirToken', j.token); });",
+            "pm.test('Rôle DIRECTION', () => pm.expect(pm.response.json().role).to.eql('DIRECTION'));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"direction@amm.ma\",\n  \"password\": \"dir123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          }
+        },
+
+        {
+          "name": "05 — Login Laboratoire",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Token JWT reçu', () => { const j = pm.response.json(); pm.expect(j.token).to.be.a('string').and.not.empty; pm.environment.set('laboToken', j.token); });",
+            "pm.test('Rôle LABORATOIRE', () => pm.expect(pm.response.json().role).to.eql('LABORATOIRE'));",
+            "pm.test('Nom laboratoire présent', () => pm.expect(pm.response.json().nomLaboratoire).to.not.be.null);"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"labo@amm.ma\",\n  \"password\": \"labo123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          }
+        },
+
+        {
+          "name": "06 — Login Invalide (doit échouer)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Accès refusé (401 ou 500)', () => pm.expect([401, 500]).to.include(pm.response.code));",
+            "pm.test('Pas de token dans la réponse', () => { try { pm.expect(pm.response.json()).to.not.have.property('token'); } catch(e) {} });"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"hacker@evil.com\",\n  \"password\": \"wrong\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "📁 Groupe 2 — Dossiers AMM",
+      "item": [
+
+        {
+          "name": "07 — Soumettre demande AMM",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+            "pm.test('Référence AMM générée', () => { const j = pm.response.json(); pm.expect(j.reference).to.match(/^AMM-\\d{4}-\\d{4}$/); pm.environment.set('dossierId', j.id); pm.environment.set('dossierRef', j.reference); });",
+            "pm.test('Statut DEPOSE', () => pm.expect(pm.response.json().statut).to.eql('DEPOSE'));",
+            "pm.test('ProcessInstanceKey Zeebe présent', () => pm.expect(pm.response.json().processInstanceKey).to.not.be.null);"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{laboToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"nomMedicament\": \"Paracetamol Test 500mg\",\n  \"nomLaboratoire\": \"Sothema\",\n  \"emailLaboratoire\": \"contact@sothema.ma\",\n  \"dci\": \"Paracetamol\",\n  \"dosage\": \"500mg\",\n  \"formePharmaceutique\": \"Comprimes\",\n  \"voieAdministration\": \"Orale\",\n  \"classeTherapeutique\": \"Analgesique - Antipyretique\",\n  \"conditionnement\": \"Boite de 16\",\n  \"dossierAdministratif\": true,\n  \"dossierChimique\": true,\n  \"dossierToxicologique\": true,\n  \"dossierClinique\": true,\n  \"resumeCaracteristiques\": true,\n  \"maquetteConditionnement\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/api/dossiers", "host": ["{{baseUrl}}"], "path": ["api","dossiers"] }
+          }
+        },
+
+        {
+          "name": "08 — Lister tous les dossiers (Admin)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Réponse est un tableau', () => pm.expect(pm.response.json()).to.be.an('array'));",
+            "pm.test('Au moins 1 dossier', () => pm.expect(pm.response.json().length).to.be.above(0));",
+            "pm.test('Structure dossier valide', () => { const d = pm.response.json()[0]; pm.expect(d).to.have.property('id'); pm.expect(d).to.have.property('reference'); pm.expect(d).to.have.property('statut'); });"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/dossiers", "host": ["{{baseUrl}}"], "path": ["api","dossiers"] }
+          }
+        },
+
+        {
+          "name": "09 — Lister mes dossiers (Laboratoire)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Filtrage par propriétaire', () => { const list = pm.response.json(); pm.expect(list).to.be.an('array'); });"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{laboToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/dossiers", "host": ["{{baseUrl}}"], "path": ["api","dossiers"] }
+          }
+        },
+
+        {
+          "name": "10 — Obtenir dossier par ID",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('ID correspond', () => pm.expect(pm.response.json().id).to.eql(+pm.environment.get('dossierId')));",
+            "pm.test('Référence présente', () => pm.expect(pm.response.json().reference).to.eql(pm.environment.get('dossierRef')));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/dossiers/{{dossierId}}", "host": ["{{baseUrl}}"], "path": ["api","dossiers","{{dossierId}}"] }
+          }
+        },
+
+        {
+          "name": "11 — Obtenir dossier par référence",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Référence correcte', () => pm.expect(pm.response.json().reference).to.eql(pm.environment.get('dossierRef')));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/dossiers/reference/{{dossierRef}}", "host": ["{{baseUrl}}"], "path": ["api","dossiers","reference","{{dossierRef}}"] }
+          }
+        },
+
+        {
+          "name": "12 — Filtrer par statut DEPOSE",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Tous les dossiers sont DEPOSE', () => { pm.response.json().forEach(d => pm.expect(d.statut).to.eql('DEPOSE')); });"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/dossiers/statut/DEPOSE", "host": ["{{baseUrl}}"], "path": ["api","dossiers","statut","DEPOSE"] }
+          }
+        },
+
+        {
+          "name": "13 — Dossiers récents",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Réponse est un tableau', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/dossiers/recent", "host": ["{{baseUrl}}"], "path": ["api","dossiers","recent"] }
+          }
+        },
+
+        {
+          "name": "14 — Accès refusé sans token (sécurité)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 403 Forbidden', () => pm.expect([401,403]).to.include(pm.response.code));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/dossiers", "host": ["{{baseUrl}}"], "path": ["api","dossiers"] }
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "⚙️ Groupe 3 — Workflow AMM",
+      "item": [
+
+        {
+          "name": "15 — Vérification administrative (Complet)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Message vérification', () => pm.expect(pm.response.json().message).to.include('Vérification'));",
+            "pm.test('Nouveau statut EN_EVALUATION', () => pm.expect(pm.response.json().nouveauStatut).to.eql('EN_EVALUATION'));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"dossierComplet\": true,\n  \"commentaire\": \"Dossier complet — tous les documents requis sont présents\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/dossiers/{{dossierId}}/verification?jobKey=0", "host": ["{{baseUrl}}"], "path": ["api","dossiers","{{dossierId}}","verification"], "query": [{ "key": "jobKey", "value": "0" }] }
+          }
+        },
+
+        {
+          "name": "16 — Évaluation technique (Favorable)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Nouveau statut EN_VALIDATION', () => pm.expect(pm.response.json().nouveauStatut).to.eql('EN_VALIDATION'));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{evalToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"avis\": \"FAVORABLE\",\n  \"commentaire\": \"Évaluation scientifique favorable — bioéquivalence démontrée\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/dossiers/{{dossierId}}/evaluation?jobKey=0", "host": ["{{baseUrl}}"], "path": ["api","dossiers","{{dossierId}}","evaluation"], "query": [{ "key": "jobKey", "value": "0" }] }
+          }
+        },
+
+        {
+          "name": "17 — Décision Direction (Approuvé)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Décision APPROUVE', () => pm.expect(pm.response.json().decision).to.eql('APPROUVE'));",
+            "pm.test('Message présent', () => pm.expect(pm.response.json().message).to.not.be.empty);"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{dirToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"APPROUVE\",\n  \"motif\": \"Dossier conforme aux exigences réglementaires AMMPS\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/dossiers/{{dossierId}}/decision?jobKey=0", "host": ["{{baseUrl}}"], "path": ["api","dossiers","{{dossierId}}","decision"], "query": [{ "key": "jobKey", "value": "0" }] }
+          }
+        },
+
+        {
+          "name": "18 — Historique du dossier",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Historique est un tableau', () => pm.expect(pm.response.json()).to.be.an('array'));",
+            "pm.test('Au moins 1 entrée historique', () => pm.expect(pm.response.json().length).to.be.above(0));",
+            "pm.test('Structure entrée valide', () => { const h = pm.response.json()[0]; pm.expect(h).to.have.property('action'); pm.expect(h).to.have.property('dateAction'); });"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/dossiers/{{dossierId}}/historique", "host": ["{{baseUrl}}"], "path": ["api","dossiers","{{dossierId}}","historique"] }
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "📊 Groupe 4 — Statistiques & Monitoring",
+      "item": [
+
+        {
+          "name": "19 — Statistiques globales",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('totalDossiers présent', () => pm.expect(pm.response.json()).to.have.property('totalDossiers'));",
+            "pm.test('Champs statistiques complets', () => { const s = pm.response.json(); ['totalDossiers','approuves','rejetes','enEvaluation'].forEach(k => pm.expect(s).to.have.property(k)); });",
+            "pm.test('Total cohérent', () => pm.expect(pm.response.json().totalDossiers).to.be.above(0));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/statistiques", "host": ["{{baseUrl}}"], "path": ["api","statistiques"] }
+          }
+        },
+
+        {
+          "name": "20 — File attente vérification",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Réponse tableau', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/dossiers/file-attente/verification", "host": ["{{baseUrl}}"], "path": ["api","dossiers","file-attente","verification"] }
+          }
+        },
+
+        {
+          "name": "21 — File attente évaluation",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Réponse tableau', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/dossiers/file-attente/evaluation", "host": ["{{baseUrl}}"], "path": ["api","dossiers","file-attente","evaluation"] }
+          }
+        },
+
+        {
+          "name": "22 — Health Check API",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Statut UP', () => pm.expect(pm.response.json().status).to.eql('UP'));",
+            "pm.test('Service AMMPS', () => pm.expect(pm.response.json().service).to.include('AMMPS'));",
+            "pm.test('Temps réponse < 500ms', () => pm.expect(pm.response.responseTime).to.be.below(500));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/dossiers/health", "host": ["{{baseUrl}}"], "path": ["api","dossiers","health"] }
+          }
+        },
+
+        {
+          "name": "23 — Actuator Health (Spring Boot)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('Statut UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+          ], "type": "text/javascript" }}],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator","health"] }
+          }
+        }
+
+      ]
+    }
+
+  ]
+}

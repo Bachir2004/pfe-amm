@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<title>Processus AMM — Workflow BPMN</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8}
+
+.header{background:linear-gradient(135deg,#0f2419 0%,#1a5c28 100%);color:#fff;
+  padding:16px 32px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.header-left{display:flex;align-items:center;gap:16px}
+.header-left img{height:52px}
+.htitle h1{font-size:17px;font-weight:700}
+.htitle p{font-size:11px;opacity:.7;margin-top:3px}
+.header-right img{height:34px;filter:brightness(0) invert(1);opacity:.85}
+
+.legend{display:flex;gap:18px;align-items:center;padding:9px 32px;
+  background:#fff;border-bottom:2px solid #e5e7eb;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:6px;font-size:12px;color:#374151}
+.leg-box{width:16px;height:16px;border-radius:4px;border:1.5px solid}
+.leg-circle{width:16px;height:16px;border-radius:50%;border:2.5px solid}
+.leg-diamond{width:14px;height:14px;transform:rotate(45deg);border:2px solid #ca8a04;background:#fef9c3}
+.sep{color:#d1d5db;font-size:18px}
+
+.canvas-wrap{overflow:auto;height:calc(100vh - 100px);background:#f8fafc;
+  display:flex;align-items:center;justify-content:center;padding:24px}
+
+svg.bpmn{background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.12)}
+
+/* pools */
+.pool-label{font:700 13px 'Segoe UI',Arial;fill:#374151}
+.lane-label{font:600 11px 'Segoe UI',Arial;fill:#6b7280}
+
+/* shapes */
+.task{rx:8;ry:8;stroke-width:2}
+.task-user{fill:#dbeafe;stroke:#1a56db}
+.task-service{fill:#d1fae5;stroke:#2d8c3e}
+.task-orange{fill:#ffedd5;stroke:#ea580c}
+.task-yellow{fill:#fef3c7;stroke:#d97706}
+.task-purple{fill:#ede9fe;stroke:#7c3aed}
+.task-green{fill:#d1fae5;stroke:#2d8c3e}
+.task-red{fill:#fde8e8;stroke:#cc2222}
+
+.gw{fill:#fef9c3;stroke:#ca8a04;stroke-width:2}
+.start-ev{fill:#d1fae5;stroke:#2d8c3e;stroke-width:2.5}
+.end-app{fill:#2d8c3e;stroke:#1a5c28;stroke-width:3}
+.end-rej{fill:#cc2222;stroke:#aa1a1a;stroke-width:3}
+
+.flow{fill:none;stroke:#6b7280;stroke-width:1.8;marker-end:url(#arrow)}
+.flow-ok{fill:none;stroke:#2d8c3e;stroke-width:2;marker-end:url(#arrow-ok)}
+.flow-ko{fill:none;stroke:#cc2222;stroke-width:2;marker-end:url(#arrow-ko)}
+.flow-back{fill:none;stroke:#f59e0b;stroke-width:1.8;stroke-dasharray:6,3;marker-end:url(#arrow-back)}
+
+.task-label{font:600 11.5px 'Segoe UI',Arial;fill:#1e293b;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.gw-label{font:600 10px 'Segoe UI',Arial;fill:#92400e;text-anchor:middle}
+.flow-label{font:600 10px 'Segoe UI',Arial;fill:#374151}
+.ev-label{font:600 10.5px 'Segoe UI',Arial;fill:#1e293b;text-anchor:middle}
+
+/* role badges */
+.badge{rx:10;ry:10;height:18px;opacity:.9}
+.badge-admin{fill:#dbeafe;stroke:#1a56db}
+.badge-eval{fill:#ede9fe;stroke:#7c3aed}
+.badge-dir{fill:#fef3c7;stroke:#d97706}
+.badge-labo{fill:#d1fae5;stroke:#2d8c3e}
+.badge-sys{fill:#f3f4f6;stroke:#6b7280}
+.badge-txt{font:700 9px 'Segoe UI',Arial;dominant-baseline:middle;text-anchor:middle}
+.badge-txt-admin{fill:#1d4ed8}.badge-txt-eval{fill:#6d28d9}.badge-txt-dir{fill:#92400e}
+.badge-txt-labo{fill:#166534}.badge-txt-sys{fill:#374151}
+
+/* icon */
+.icon{font:bold 14px Arial;dominant-baseline:middle;text-anchor:middle}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <img src="assets/ammps_logo-removebg-preview.png" alt="AMMPS" onerror="this.style.display='none'">
+    <div class="htitle">
+      <h1>Workflow BPMN — Processus de Gestion des AMM</h1>
+      <p>Agence Marocaine du Médicament et des Produits de Santé · Camunda 8 Zeebe · BPMN 2.0</p>
+    </div>
+  </div>
+  <img src="assets/cdg incept logo.png" alt="CDG Incept" onerror="this.style.display='none'">
+</div>
+
+<div class="legend">
+  <span style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Légende :</span>
+  <div class="leg"><div class="leg-circle" style="background:#d1fae5;border-color:#2d8c3e"></div> Événement début</div>
+  <div class="leg"><div class="leg-box" style="background:#dbeafe;border-color:#1a56db"></div> Tâche Admin</div>
+  <div class="leg"><div class="leg-box" style="background:#ede9fe;border-color:#7c3aed"></div> Tâche Évaluateur</div>
+  <div class="leg"><div class="leg-box" style="background:#fef3c7;border-color:#d97706"></div> Tâche Direction</div>
+  <div class="leg"><div class="leg-box" style="background:#ffedd5;border-color:#ea580c"></div> Tâche Laboratoire</div>
+  <div class="leg"><div class="leg-box" style="background:#d1fae5;border-color:#2d8c3e"></div> Service Task</div>
+  <div class="leg"><div class="leg-diamond"></div>&nbsp;Passerelle</div>
+  <div class="sep">|</div>
+  <div class="leg"><svg width="30" height="12"><line x1="0" y1="6" x2="20" y2="6" stroke="#6b7280" stroke-width="2" marker-end="url(#a)"/><defs><marker id="a" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0L6,3L0,6Z" fill="#6b7280"/></marker></defs></svg> Flux normal</div>
+  <div class="leg"><svg width="30" height="12"><line x1="0" y1="6" x2="20" y2="6" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,2"/></svg> Retour</div>
+</div>
+
+<div class="canvas-wrap">
+<svg class="bpmn" viewBox="0 0 1380 500" width="1380" height="500" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0L8,3L0,6Z" fill="#6b7280"/>
+  </marker>
+  <marker id="arrow-ok" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0L8,3L0,6Z" fill="#2d8c3e"/>
+  </marker>
+  <marker id="arrow-ko" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0L8,3L0,6Z" fill="#cc2222"/>
+  </marker>
+  <marker id="arrow-back" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0L8,3L0,6Z" fill="#f59e0b"/>
+  </marker>
+  <!-- User task icon -->
+  <symbol id="icon-user" viewBox="0 0 16 16">
+    <circle cx="8" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  </symbol>
+  <!-- Service task icon -->
+  <symbol id="icon-gear" viewBox="0 0 16 16">
+    <circle cx="8" cy="8" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4" stroke="currentColor" stroke-width="1.5"/>
+  </symbol>
+</defs>
+
+<!-- ═══════════════ POOL BACKGROUND ═══════════════ -->
+<!-- Pool border -->
+<rect x="20" y="20" width="1340" height="460" rx="10" fill="#fafafa" stroke="#d1d5db" stroke-width="1.5"/>
+<!-- Pool label bar -->
+<rect x="20" y="20" width="36" height="460" rx="10" fill="#e2e8f0" stroke="#d1d5db" stroke-width="1.5"/>
+<text transform="translate(38,250) rotate(-90)" class="pool-label" text-anchor="middle">Processus AMM Pharmaceutique — AMMPS</text>
+
+<!-- Lane: Chemin principal -->
+<rect x="56" y="20" width="1304" height="270" fill="#fff" stroke="#e5e7eb" stroke-width="1"/>
+<rect x="56" y="20" width="36" height="270" fill="#f1f5f9" stroke="#e5e7eb" stroke-width="1"/>
+<text transform="translate(74,155) rotate(-90)" class="lane-label" text-anchor="middle">Flux principal</text>
+
+<!-- Lane: Gestion incomplet -->
+<rect x="56" y="290" width="1304" height="190" fill="#fffbeb" stroke="#e5e7eb" stroke-width="1"/>
+<rect x="56" y="290" width="36" height="190" fill="#fef3c7" stroke="#e5e7eb" stroke-width="1"/>
+<text transform="translate(74,385) rotate(-90)" class="lane-label" text-anchor="middle">Dossier incomplet</text>
+
+<!-- ═══════════════ SEQUENCE FLOWS ═══════════════ -->
+
+<!-- Start → Vérification -->
+<line x1="148" y1="130" x2="188" y2="130" class="flow"/>
+
+<!-- Vérification → Gateway1 -->
+<line x1="308" y1="130" x2="368" y2="130" class="flow"/>
+
+<!-- Gateway1 → Évaluation (Complet) -->
+<line x1="418" y1="130" x2="478" y2="130" class="flow-ok"/>
+<text x="434" y="122" class="flow-label" fill="#16a34a">Complet</text>
+
+<!-- Évaluation → Validation Direction -->
+<line x1="598" y1="130" x2="658" y2="130" class="flow"/>
+
+<!-- Validation → Gateway2 -->
+<line x1="778" y1="130" x2="838" y2="130" class="flow"/>
+
+<!-- Gateway2 → Notif Approbation (Approuvé) -->
+<polyline points="888,108 888,90 948,90" class="flow-ok"/>
+<text x="892" y="83" class="flow-label" fill="#16a34a">Approuvé</text>
+
+<!-- Gateway2 → Notif Rejet (Rejeté) -->
+<polyline points="888,152 888,220 948,220" class="flow-ko"/>
+<text x="892" y="214" class="flow-label" fill="#cc2222">Rejeté</text>
+
+<!-- Notif Approbation → End Approuvé -->
+<line x1="1068" y1="90" x2="1148" y2="90" class="flow-ok"/>
+
+<!-- Notif Rejet → End Rejeté -->
+<line x1="1068" y1="220" x2="1148" y2="220" class="flow-ko"/>
+
+<!-- Gateway1 → Demande Complément (Incomplet) -->
+<polyline points="393,155 393,350 428,350" class="flow-ko"/>
+<text x="397" y="260" class="flow-label" fill="#cc2222">Incomplet</text>
+
+<!-- Demande Complément → Retour Laboratoire -->
+<line x1="428" y1="350" x2="548" y2="350" class="flow"/>
+<!-- Arrow reversed: right to left -->
+<line x1="548" y1="350" x2="430" y2="350" class="flow" style="display:none"/>
+
+<!-- Actually demande-complement is at x=548 going left to retour-labo at x=308 -->
+<!-- Let me redo: demande-complement x=430..550, retour-labo x=188..308 -->
+<!-- Flow: demande → retour (right to left arrow) -->
+<line x1="430" y1="370" x2="308" y2="370" class="flow-back"/>
+
+<!-- Retour Labo → Vérification Admin (back up) -->
+<polyline points="248,330 248,175" class="flow-back"/>
+<text x="252" y="258" class="flow-label" fill="#b45309">Resoumis</text>
+
+<!-- ═══════════════ SHAPES ═══════════════ -->
+
+<!-- START EVENT -->
+<circle cx="130" cy="130" r="22" class="start-ev"/>
+<text x="130" y="130" class="icon" fill="#2d8c3e">▶</text>
+<text x="130" y="162" class="ev-label">Demande AMM</text>
+<text x="130" y="174" class="ev-label">Déposée</text>
+
+<!-- TASK: Vérification Administrative (ADMIN) -->
+<rect x="188" y="90" width="120" height="80" class="task task-user"/>
+<use href="#icon-user" x="195" y="95" width="14" height="14" color="#1a56db"/>
+<text x="248" y="128" class="task-label">Vérification</text>
+<text x="248" y="143" class="task-label">Administrative</text>
+<!-- Badge ADMIN -->
+<rect x="208" y="158" width="60" height="18" class="badge badge-admin"/>
+<text x="238" y="167" class="badge-txt badge-txt-admin">ADMIN</text>
+
+<!-- GATEWAY 1: Dossier complet ? -->
+<polygon points="393,105 418,130 393,155 368,130" class="gw"/>
+<text x="393" y="170" class="gw-label">Dossier</text>
+<text x="393" y="181" class="gw-label">Complet ?</text>
+
+<!-- TASK: Évaluation Technique (EVALUATEUR) -->
+<rect x="478" y="90" width="120" height="80" class="task task-purple"/>
+<use href="#icon-user" x="485" y="95" width="14" height="14" color="#7c3aed"/>
+<text x="538" y="128" class="task-label">Évaluation</text>
+<text x="538" y="143" class="task-label">Technique</text>
+<!-- Badge EVALUATEUR -->
+<rect x="488" y="158" width="80" height="18" class="badge badge-eval"/>
+<text x="528" y="167" class="badge-txt badge-txt-eval">ÉVALUATEUR</text>
+
+<!-- TASK: Validation Direction (DIRECTION) -->
+<rect x="658" y="90" width="120" height="80" class="task task-yellow"/>
+<use href="#icon-user" x="665" y="95" width="14" height="14" color="#d97706"/>
+<text x="718" y="128" class="task-label">Validation</text>
+<text x="718" y="143" class="task-label">Direction</text>
+<!-- Badge DIRECTION -->
+<rect x="678" y="158" width="80" height="18" class="badge badge-dir"/>
+<text x="718" y="167" class="badge-txt badge-txt-dir">DIRECTION</text>
+
+<!-- GATEWAY 2: Décision -->
+<polygon points="888,105 913,130 888,155 863,130" class="gw"/>
+<text x="888" y="170" class="gw-label">Décision ?</text>
+
+<!-- TASK: Notification Approbation (SERVICE) -->
+<rect x="948" y="50" width="120" height="80" class="task task-service"/>
+<use href="#icon-gear" x="955" y="57" width="14" height="14" color="#2d8c3e"/>
+<text x="1008" y="88" class="task-label">Notification</text>
+<text x="1008" y="103" class="task-label">Approbation</text>
+<!-- Badge SYS -->
+<rect x="968" y="118" width="60" height="18" class="badge badge-sys"/>
+<text x="998" y="127" class="badge-txt badge-txt-sys">SERVICE</text>
+
+<!-- TASK: Notification Rejet (SERVICE) -->
+<rect x="948" y="180" width="120" height="80" class="task task-red"/>
+<use href="#icon-gear" x="955" y="187" width="14" height="14" color="#cc2222"/>
+<text x="1008" y="218" class="task-label">Notification</text>
+<text x="1008" y="233" class="task-label">Rejet</text>
+<!-- Badge SYS -->
+<rect x="968" y="248" width="60" height="18" class="badge badge-sys"/>
+<text x="998" y="257" class="badge-txt badge-txt-sys">SERVICE</text>
+
+<!-- END EVENT: AMM Approuvée -->
+<circle cx="1175" cy="90" r="22" class="end-app"/>
+<text x="1175" y="90" class="icon" fill="#fff" style="font-size:16px">■</text>
+<text x="1175" y="122" class="ev-label">AMM</text>
+<text x="1175" y="134" class="ev-label">Approuvée ✅</text>
+
+<!-- END EVENT: AMM Rejetée -->
+<circle cx="1175" cy="220" r="22" class="end-rej"/>
+<text x="1175" y="220" class="icon" fill="#fff" style="font-size:16px">■</text>
+<text x="1175" y="252" class="ev-label">AMM</text>
+<text x="1175" y="264" class="ev-label">Rejetée ❌</text>
+
+<!-- ═══ LANE INFÉRIEURE ═══ -->
+
+<!-- TASK: Demande de Complément (ADMIN) -->
+<rect x="308" y="310" width="120" height="80" class="task task-orange"/>
+<use href="#icon-user" x="315" y="317" width="14" height="14" color="#ea580c"/>
+<text x="368" y="348" class="task-label">Demande de</text>
+<text x="368" y="363" class="task-label">Complément</text>
+<!-- Badge ADMIN -->
+<rect x="328" y="378" width="60" height="18" class="badge badge-admin"/>
+<text x="358" y="387" class="badge-txt badge-txt-admin">ADMIN</text>
+
+<!-- TASK: Retour Laboratoire (LABORATOIRE) -->
+<rect x="128" y="310" width="120" height="80" class="task task-green"/>
+<use href="#icon-user" x="135" y="317" width="14" height="14" color="#2d8c3e"/>
+<text x="188" y="348" class="task-label">Retour</text>
+<text x="188" y="363" class="task-label">Laboratoire</text>
+<!-- Badge LABO -->
+<rect x="138" y="378" width="100" height="18" class="badge badge-labo"/>
+<text x="188" y="387" class="badge-txt badge-txt-labo">LABORATOIRE</text>
+
+<!-- ═══ TITLE FOOTER ═══ -->
+<text x="700" y="485" font-family="Segoe UI,Arial" font-size="11" fill="#9ca3af" text-anchor="middle">
+  AMMPS · Système de Gestion des AMM · PFE 2026 · CDG Incept
+</text>
+
+</svg>
+</div>
+
+</body>
+</html>

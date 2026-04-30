@@ -1,0 +1,14 @@
+{
+  "id": "amm-env-001",
+  "name": "AMM — AMMPS Local",
+  "values": [
+    { "key": "baseUrl",    "value": "http://localhost:8080", "enabled": true },
+    { "key": "adminToken", "value": "",                      "enabled": true },
+    { "key": "evalToken",  "value": "",                      "enabled": true },
+    { "key": "dirToken",   "value": "",                      "enabled": true },
+    { "key": "laboToken",  "value": "",                      "enabled": true },
+    { "key": "dossierId",  "value": "",                      "enabled": true },
+    { "key": "dossierRef", "value": "",                      "enabled": true }
+  ],
+  "_postman_variable_scope": "environment"
+}

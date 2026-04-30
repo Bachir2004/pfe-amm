@@ -1,0 +1,172 @@
+services:
+
+  # ═══════════════════════════ BASE DE DONNÉES ═══════════════════════════
+  postgres:
+    image: postgres:15
+    container_name: amm-postgres
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - amm-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ═══════════════════════════ ELASTICSEARCH ═════════════════════════════
+  elasticsearch:
+    image: elasticsearch:8.9.0
+    container_name: amm-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - amm-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+  # ═══════════════════════════ ZEEBE (CAMUNDA 8) ═════════════════════════
+  zeebe:
+    image: camunda/zeebe:8.3.0
+    container_name: amm-zeebe
+    environment:
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_CLASSNAME=io.camunda.zeebe.exporter.ElasticsearchExporter
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_ARGS_URL=http://elasticsearch:9200
+      - ZEEBE_BROKER_EXPORTERS_ELASTICSEARCH_ARGS_BULK_SIZE=1
+      - ZEEBE_BROKER_NETWORK_HOST=0.0.0.0
+      - ZEEBE_BROKER_GATEWAY_SECURITY_AUTHENTICATION_MODE=none
+    ports:
+      - "26500:26500"
+      - "9600:9600"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - amm-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9600/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+  # ═══════════════════════════ CAMUNDA OPERATE ═══════════════════════════
+  operate:
+    image: camunda/operate:8.3.0
+    container_name: amm-operate
+    environment:
+      - CAMUNDA_OPERATE_ZEEBE_GATEWAYADDRESS=zeebe:26500
+      - CAMUNDA_OPERATE_ELASTICSEARCH_URL=http://elasticsearch:9200
+      - CAMUNDA_OPERATE_ZEEBEELASTICSEARCH_URL=http://elasticsearch:9200
+    ports:
+      - "8081:8080"
+    depends_on:
+      - zeebe
+      - elasticsearch
+    networks:
+      - amm-network
+    restart: unless-stopped
+
+  # ═══════════════════════════ BACKEND SPRING BOOT ═══════════════════════
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: amm-backend
+    env_file: .env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - ZEEBE_HOST=zeebe
+      - ZEEBE_PORT=26500
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      zeebe:
+        condition: service_healthy
+    networks:
+      - amm-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # ═══════════════════════════ FRONTEND NGINX ════════════════════════════
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: amm-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - amm-network
+    restart: unless-stopped
+
+  # ═══════════════════════════ PROMETHEUS ════════════════════════════════
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: amm-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    networks:
+      - amm-network
+    restart: unless-stopped
+
+  # ═══════════════════════════ GRAFANA ═══════════════════════════════════
+  grafana:
+    image: grafana/grafana:latest
+    container_name: amm-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - amm-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  elasticsearch_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  amm-network:
+    driver: bridge

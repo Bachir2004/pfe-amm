@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AMMPS — Système de Gestion des AMM</title>
+<style>
+:root{
+  --green:#2d8c3e;--green-dark:#1a5c28;--green-light:#e8f5eb;--green-mid:#0f2419;
+  --red:#cc2222;--red-light:#fde8e8;
+  --orange:#e87c1e;--orange-light:#fef3e2;
+  --blue:#1a56db;--blue-light:#e8effe;
+  --black:#111111;--gray:#6b7280;--gray-light:#f3f4f6;--border:#e5e7eb;
+  --white:#ffffff;--sidebar-w:240px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--gray-light);color:var(--black);font-size:14px}
+button{cursor:pointer;border:none;outline:none;font-family:inherit}
+input,select,textarea{font-family:inherit;outline:none}
+a{color:var(--green);text-decoration:none}a:hover{text-decoration:underline}
+
+/* AUTH PAGES */
+.auth-page{display:none;min-height:100vh;background:linear-gradient(135deg,#2d8c3e 0%,#1a5c28 50%,#0f3d1a 100%);align-items:center;justify-content:center;padding:20px}
+.auth-page.active{display:flex}
+.auth-box{background:var(--white);border-radius:16px;padding:40px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.auth-logo{text-align:center;margin-bottom:28px}
+.auth-logo img{height:64px}
+.auth-logo h1{font-size:20px;color:var(--green-dark);margin-top:12px;font-weight:700}
+.auth-logo p{font-size:12px;color:var(--gray);margin-top:4px}
+.auth-box h2{font-size:18px;color:var(--black);margin-bottom:20px;text-align:center}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--gray);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--green)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-section-title{font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--green-light)}
+.btn-primary{width:100%;padding:12px;background:var(--green);color:var(--white);border-radius:8px;font-size:15px;font-weight:600;transition:background .2s;margin-top:8px}
+.btn-primary:hover{background:var(--green-dark)}
+.auth-footer{text-align:center;margin-top:20px;font-size:13px;color:var(--gray)}
+.auth-partner{text-align:center;margin-top:28px;padding-top:20px;border-top:1px solid var(--border);font-size:11px;color:var(--gray)}
+.auth-partner img{height:28px;opacity:.7}
+.error-msg{background:var(--red-light);color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none}
+.success-msg{background:var(--green-light);color:var(--green-dark);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none}
+.checkbox-label{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--gray);cursor:pointer}
+.checkbox-label input{width:16px;height:16px;margin-top:1px;accent-color:var(--green)}
+
+/* APP LAYOUT */
+#app{display:none;height:100vh;overflow:hidden}
+#app.active{display:flex;flex-direction:column}
+.app-shell{display:flex;flex:1;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--green-mid);color:var(--white);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sidebar-logo{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sidebar-logo img{height:44px;filter:brightness(0) invert(1)}
+.role-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;margin-top:4px}
+.role-badge.ADMIN{background:#3b82f6;color:#fff}.role-badge.EVALUATEUR{background:#8b5cf6;color:#fff}
+.role-badge.DIRECTION{background:#f59e0b;color:#fff}.role-badge.LABORATOIRE{background:var(--green);color:#fff}
+.nav-section{padding:8px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;color:rgba(255,255,255,.75);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
+.nav-item:hover{background:rgba(255,255,255,.08);color:var(--white)}
+.nav-item.active{background:rgba(255,255,255,.12);color:var(--white);border-left-color:var(--green)}
+.nav-icon{font-size:16px;width:20px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700}
+.sidebar-bottom{margin-top:auto;padding:12px;border-top:1px solid rgba(255,255,255,.1)}
+.logout-btn{width:100%;padding:9px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border-radius:8px;font-size:13px;transition:background .2s}
+.logout-btn:hover{background:rgba(255,255,255,.2)}
+.app-body{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--white);border-bottom:2px solid var(--green);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-left img{height:32px}
+.page-title{font-size:16px;font-weight:700;color:var(--black)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.notif-btn{position:relative;background:var(--gray-light);border:none;width:36px;height:36px;border-radius:8px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.notif-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:10px;padding:0 5px;font-size:10px;font-weight:700;min-width:18px;text-align:center;display:none}
+.main-content{flex:1;overflow-y:auto;padding:24px}
+
+/* SECTIONS */
+.section{display:none}.section.active{display:block}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.section-header h2{font-size:18px;font-weight:700}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--white);border-radius:12px;padding:18px;border-top:3px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.kpi-card.green{border-top-color:var(--green)}.kpi-card.red{border-top-color:var(--red)}.kpi-card.orange{border-top-color:var(--orange)}.kpi-card.blue{border-top-color:var(--blue)}.kpi-card.purple{border-top-color:#8b5cf6}
+.kpi-val{font-size:28px;font-weight:800;color:var(--black)}.kpi-label{font-size:12px;color:var(--gray);margin-top:4px}.kpi-sub{font-size:11px;color:var(--green);margin-top:2px}
+
+/* TABLES */
+.card{background:var(--white);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:20px}
+.card-title{font-size:15px;font-weight:700;margin-bottom:16px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;border-bottom:1.5px solid var(--border)}
+td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--gray-light)}
+.table-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+/* BADGES */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase}
+.badge-DEPOSE{background:#dbeafe;color:#1d4ed8}.badge-EN_VERIFICATION{background:#fef3c7;color:#92400e}
+.badge-INCOMPLET{background:var(--orange-light);color:var(--orange)}.badge-EN_EVALUATION{background:#ede9fe;color:#6d28d9}
+.badge-EN_VALIDATION{background:#fce7f3;color:#9d174d}.badge-APPROUVE{background:#d1fae5;color:var(--green-dark)}
+.badge-REJETE{background:var(--red-light);color:var(--red)}.badge-ANNULE{background:var(--gray-light);color:var(--gray)}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600;transition:all .15s;border:none;cursor:pointer}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:6px}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{background:var(--green-dark)}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#aa1a1a}
+.btn-orange{background:var(--orange);color:#fff}.btn-orange:hover{background:#c96a15}
+.btn-blue{background:var(--blue);color:#fff}.btn-blue:hover{background:#1440a8}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--gray)}.btn-outline:hover{border-color:var(--green);color:var(--green)}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:14px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.modal.wide{max-width:820px}
+.modal-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-header h3{font-size:16px;font-weight:700}
+.modal-close{background:var(--gray-light);border:none;width:30px;height:30px;border-radius:6px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray)}
+.modal-body{padding:24px;overflow-y:auto;flex:1}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0}
+
+/* WIZARD */
+.wizard-steps{display:flex;gap:0;margin-bottom:28px;background:var(--gray-light);border-radius:10px;padding:4px}
+.wizard-step-tab{flex:1;text-align:center;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;transition:all .2s}
+.wizard-step-tab.active{background:var(--green);color:#fff}.wizard-step-tab.done{background:var(--green-light);color:var(--green-dark)}
+.wizard-pane{display:none}.wizard-pane.active{display:block}
+.doc-checklist{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.doc-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer}
+.doc-item input{accent-color:var(--green);width:16px;height:16px}
+.doc-item label{font-size:13px;cursor:pointer;flex:1}
+.recap-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px}
+.recap-item label{font-size:11px;color:var(--gray);text-transform:uppercase;font-weight:600}
+.recap-item p{font-size:14px;color:var(--black);margin-top:2px}
+
+/* TIMELINE */
+.timeline{position:relative;padding-left:24px}
+.timeline::before{content:'';position:absolute;left:6px;top:0;bottom:0;width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:16px}
+.tl-dot{position:absolute;left:-21px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--green);border:2px solid var(--white);box-shadow:0 0 0 2px var(--green)}
+.tl-dot.red{background:var(--red);box-shadow:0 0 0 2px var(--red)}.tl-dot.orange{background:var(--orange);box-shadow:0 0 0 2px var(--orange)}.tl-dot.blue{background:var(--blue);box-shadow:0 0 0 2px var(--blue)}
+.tl-date{font-size:11px;color:var(--gray)}.tl-action{font-size:13px;font-weight:600;color:var(--black);margin-top:1px}.tl-comment{font-size:12px;color:var(--gray);margin-top:3px;font-style:italic}
+
+/* EVAL */
+.note-slider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:var(--border);outline:none}
+.note-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--green);cursor:pointer}
+.note-display{font-size:22px;font-weight:800;color:var(--green);min-width:32px;text-align:center}
+.note-row{display:flex;align-items:center;gap:12px}
+.avis-toggle{display:flex;gap:8px;margin-top:8px}
+.avis-btn{flex:1;padding:10px;border-radius:8px;font-size:14px;font-weight:700;border:2px solid var(--border);background:transparent;cursor:pointer;transition:all .2s}
+.avis-btn.favorable.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark)}
+.avis-btn.defavorable.selected{border-color:var(--red);background:var(--red-light);color:var(--red)}
+
+/* NOTIFICATIONS */
+.notif-dropdown{display:none;position:absolute;top:48px;right:0;width:340px;background:var(--white);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);z-index:200;overflow:hidden}
+.notif-dropdown.open{display:block}
+.notif-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.notif-header span{font-size:13px;font-weight:700}
+.notif-list{max-height:320px;overflow-y:auto}
+.notif-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.notif-item:hover{background:var(--gray-light)}.notif-item.unread{background:#f0faf2;border-left:3px solid var(--green)}
+.notif-item .notif-msg{font-size:13px;color:var(--black)}.notif-item .notif-time{font-size:11px;color:var(--gray);margin-top:3px}
+.notif-empty{padding:24px;text-align:center;color:var(--gray);font-size:13px}
+.notif-wrapper{position:relative}
+
+/* ALERT */
+.alert-banner{padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px}
+.alert-banner.warning{background:var(--orange-light);color:var(--orange)}.alert-banner.success{background:var(--green-light);color:var(--green-dark)}.alert-banner.info{background:var(--blue-light);color:var(--blue)}
+
+/* AVATAR */
+.user-avatar{width:38px;height:38px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;border:2px solid rgba(255,255,255,.25)}
+.sidebar-user{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sidebar-user-info{flex:1;min-width:0}
+.sidebar-user .user-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* DEMO BANNER */
+.demo-banner{background:#fef3c7;border-bottom:2px solid #f59e0b;padding:9px 20px;font-size:13px;color:#92400e;display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+/* QUICK LOGIN */
+.quick-logins{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 8px}
+.quick-btn{padding:9px 8px;border-radius:8px;font-size:12px;font-weight:700;border:1.5px solid var(--border);background:var(--gray-light);color:var(--black);cursor:pointer;transition:all .15s;text-align:left}
+.quick-btn:hover{border-color:var(--green);background:var(--green-light)}
+.quick-btn .qb-role{font-size:10px;color:var(--gray);display:block;margin-top:2px;font-weight:400}
+
+/* ABOUT */
+.about-hero{background:linear-gradient(135deg,var(--green) 0%,var(--green-dark) 100%);color:#fff;border-radius:14px;padding:36px;margin-bottom:24px;text-align:center}
+.about-hero h2{font-size:24px;font-weight:800;margin-bottom:8px}
+.about-hero p{opacity:.85;font-size:14px;max-width:600px;margin:0 auto}
+.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.tech-card{background:var(--white);border-radius:10px;padding:16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);border-top:3px solid var(--green)}
+.tech-card .tech-icon{font-size:28px;margin-bottom:8px}
+.tech-card h4{font-size:13px;font-weight:700;color:var(--black)}.tech-card p{font-size:11px;color:var(--gray);margin-top:4px}
+.partner-bar{display:flex;align-items:center;justify-content:center;gap:48px;background:var(--white);border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.partner-bar img{height:48px}
+
+/* QUEUE */
+.queue-item{display:flex;align-items:center;justify-content:space-between;padding:14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--white)}
+.queue-item:hover{border-color:var(--green)}
+.queue-item-info .ref{font-size:13px;font-weight:700}.queue-item-info .sub{font-size:12px;color:var(--gray);margin-top:2px}.queue-item-info .alert-txt{font-size:12px;color:var(--orange);margin-top:4px;font-weight:600}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:48px 24px;color:var(--gray)}
+.empty-state .empty-icon{font-size:48px;margin-bottom:12px;opacity:.4}
+.empty-state p{font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="page-login" class="auth-page active">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <img src="assets/ammps_logo-removebg-preview.png" alt="AMMPS" onerror="this.style.display='none'">
+      <h1>Système de Gestion des AMM</h1>
+      <p>Portail sécurisé AMMPS</p>
+    </div>
+    <div id="login-error" class="error-msg"></div>
+    <div class="form-group"><label>Email professionnel</label><input type="email" id="login-email" placeholder="votre@email.ma" autocomplete="username"/></div>
+    <div class="form-group"><label>Mot de passe</label><input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/></div>
+    <button class="btn-primary" onclick="doLogin()" id="btn-login">Se connecter</button>
+    <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+      <p style="font-size:11px;color:var(--gray);text-align:center;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Accès rapide (démonstration)</p>
+      <div class="quick-logins">
+        <button class="quick-btn" onclick="quickLogin('admin@amm.ma','admin123')">🛡️ Administrateur<span class="qb-role">admin@amm.ma</span></button>
+        <button class="quick-btn" onclick="quickLogin('evaluateur@amm.ma','eval123')">🔬 Évaluateur<span class="qb-role">evaluateur@amm.ma</span></button>
+        <button class="quick-btn" onclick="quickLogin('direction@amm.ma','dir123')">⚖️ Direction<span class="qb-role">direction@amm.ma</span></button>
+        <button class="quick-btn" onclick="quickLogin('labo@amm.ma','labo123')">🏭 Laboratoire<span class="qb-role">labo@amm.ma</span></button>
+      </div>
+    </div>
+    <div class="auth-footer">Pas encore de compte ? <a href="#" onclick="showPage('register')">Créer un compte laboratoire</a></div>
+    <div class="auth-partner">
+      <p>Développé en partenariat avec</p>
+      <img src="assets/cdg incept logo.png" alt="CDG Incept" style="margin-top:8px" onerror="this.alt='CDG Incept'">
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div id="page-register" class="auth-page">
+  <div class="auth-box" style="max-width:560px">
+    <div class="auth-logo">
+      <img src="assets/ammps_logo-removebg-preview.png" alt="AMMPS" onerror="this.style.display='none'">
+      <h1>Créer votre compte</h1>
+      <p>Inscription laboratoire / importateur</p>
+    </div>
+    <div id="reg-error" class="error-msg"></div>
+    <div id="reg-success" class="success-msg"></div>
+    <div class="form-section-title">👤 Informations personnelles</div>
+    <div class="form-group"><label>Nom complet *</label><input type="text" id="reg-nom" placeholder="Dr. Mohamed Alami"/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Email professionnel *</label><input type="email" id="reg-email" placeholder="m.alami@labo.ma"/></div>
+      <div class="form-group"><label>Téléphone</label><input type="tel" id="reg-tel" placeholder="+212 6XX XXX XXX"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Mot de passe *</label><input type="password" id="reg-pass" placeholder="••••••••"/></div>
+      <div class="form-group"><label>Confirmer *</label><input type="password" id="reg-pass2" placeholder="••••••••"/></div>
+    </div>
+    <div class="form-section-title">🏭 Informations entreprise</div>
+    <div class="form-row">
+      <div class="form-group"><label>Nom du laboratoire *</label><input type="text" id="reg-nomLabo" placeholder="Sothema SA"/></div>
+      <div class="form-group"><label>Type *</label>
+        <select id="reg-type">
+          <option value="">-- Sélectionner --</option>
+          <option value="LABORATOIRE_NATIONAL">Laboratoire national</option>
+          <option value="IMPORTATEUR">Importateur</option>
+          <option value="FABRICANT_ETRANGER">Fabricant étranger</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>Adresse</label><input type="text" id="reg-adresse" placeholder="Zone Industrielle, Casablanca"/></div>
+    <div class="form-group"><label>ICE (Identifiant Commun Entreprise)</label><input type="text" id="reg-ice" placeholder="000000000000000" maxlength="15"/></div>
+    <div class="form-group" style="margin-top:16px">
+      <label class="checkbox-label">
+        <input type="checkbox" id="reg-cgu"/>
+        J'accepte les <a href="#">conditions d'utilisation AMMPS</a>
+      </label>
+    </div>
+    <button class="btn-primary" onclick="doRegister()">Créer mon compte</button>
+    <div class="auth-footer">Déjà un compte ? <a href="#" onclick="showPage('login')">Se connecter</a></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="demo-banner" id="demo-banner" style="display:none">⚠️ <strong>Mode démonstration</strong> — Backend non disponible. Les données affichées sont fictives.</div>
+  <div class="app-shell">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><img src="assets/ammps_logo-removebg-preview.png" alt="AMMPS" onerror="this.alt='AMMPS'"></div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sb-avatar">?</div>
+      <div class="sidebar-user-info">
+        <div class="user-name" id="sb-nom">—</div>
+        <div><span class="role-badge" id="sb-role-badge">—</span></div>
+      </div>
+    </div>
+    <div class="nav-section" id="nav-menu"></div>
+    <div class="sidebar-bottom"><button class="logout-btn" onclick="doLogout()">⬅ Se déconnecter</button></div>
+  </nav>
+  <div class="app-body">
+    <div class="topbar">
+      <div class="topbar-left">
+        <img src="assets/ammps_logo-removebg-preview.png" alt="" style="height:32px" onerror="this.style.display='none'">
+        <span class="page-title" id="page-title">Tableau de bord</span>
+      </div>
+      <div class="topbar-right">
+        <div class="notif-wrapper">
+          <button class="notif-btn" onclick="toggleNotifDropdown()">🔔<span class="notif-badge" id="notif-badge"></span></button>
+          <div class="notif-dropdown" id="notif-dropdown">
+            <div class="notif-header"><span>Notifications</span><a href="#" onclick="markAllRead()" style="font-size:12px">Tout marquer lu</a></div>
+            <div class="notif-list" id="notif-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="main-content">
+      <div class="section" id="sec-dashboard"><div id="dashboard-content"></div></div>
+      <div class="section" id="sec-dossiers">
+        <div class="section-header">
+          <h2 id="dossiers-title">Dossiers AMM</h2>
+          <button class="btn btn-green" id="btn-new-dossier" onclick="openWizard()" style="display:none">+ Nouvelle demande</button>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+            <input type="text" id="search-input" placeholder="🔍  Rechercher..." style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;flex:1;min-width:180px" oninput="filterTable()"/>
+            <select id="filter-statut" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px" onchange="filterTable()">
+              <option value="">Tous les statuts</option>
+              <option value="DEPOSE">Déposé</option><option value="EN_VERIFICATION">En vérification</option>
+              <option value="INCOMPLET">Incomplet</option><option value="EN_EVALUATION">En évaluation</option>
+              <option value="EN_VALIDATION">En validation</option><option value="APPROUVE">Approuvé</option><option value="REJETE">Rejeté</option>
+            </select>
+          </div>
+          <div id="dossiers-table-wrap"></div>
+        </div>
+      </div>
+      <div class="section" id="sec-queue"><div class="section-header"><h2>File d'attente — Vérification</h2></div><div id="queue-content"></div></div>
+      <div class="section" id="sec-evaluation"><div class="section-header"><h2>Dossiers à évaluer</h2></div><div id="eval-content"></div></div>
+      <div class="section" id="sec-validation"><div class="section-header"><h2>Dossiers en attente de décision</h2></div><div id="validation-content"></div></div>
+      <div class="section" id="sec-stats"><div class="section-header"><h2>Statistiques AMMPS</h2></div><div id="stats-content"></div></div>
+      <div class="section" id="sec-about">
+        <div class="about-hero">
+          <img src="assets/ammps_logo-removebg-preview.png" alt="AMMPS" style="height:56px;filter:brightness(0) invert(1);margin-bottom:16px" onerror="this.style.display='none'">
+          <h2>Système de Gestion des AMM</h2>
+          <p>Plateforme de gestion des Autorisations de Mise sur le Marché pharmaceutique, développée dans le cadre du PFE en partenariat avec CDG Incept pour l'AMMPS.</p>
+        </div>
+        <div class="tech-grid">
+          <div class="tech-card"><div class="tech-icon">☕</div><h4>Spring Boot 3.1</h4><p>Backend REST API Java 17</p></div>
+          <div class="tech-card"><div class="tech-icon">🐘</div><h4>PostgreSQL 15</h4><p>Base de données relationnelle</p></div>
+          <div class="tech-card"><div class="tech-icon">🔐</div><h4>JWT + Spring Security</h4><p>Authentification stateless</p></div>
+          <div class="tech-card"><div class="tech-icon">⚙️</div><h4>Camunda 8 Zeebe</h4><p>Moteur de workflow BPMN</p></div>
+          <div class="tech-card"><div class="tech-icon">🌐</div><h4>Vanilla JS SPA</h4><p>Frontend sans framework</p></div>
+          <div class="tech-card"><div class="tech-icon">🐳</div><h4>Docker</h4><p>Conteneurisation des services</p></div>
+          <div class="tech-card"><div class="tech-icon">📊</div><h4>Prometheus / Grafana</h4><p>Monitoring et métriques</p></div>
+          <div class="tech-card"><div class="tech-icon">🔑</div><h4>RBAC 4 rôles</h4><p>ADMIN · EVALUATEUR · DIRECTION · LABORATOIRE</p></div>
+          <div class="tech-card"><div class="tech-icon">📱</div><h4>Responsive Design</h4><p>Interface adaptative</p></div>
+        </div>
+        <div class="partner-bar">
+          <div style="text-align:center"><img src="assets/ammps_logo-removebg-preview.png" alt="AMMPS" style="height:52px" onerror="this.alt='AMMPS'"><p style="font-size:11px;color:var(--gray);margin-top:6px">AMMPS</p></div>
+          <div style="color:var(--border);font-size:32px">×</div>
+          <div style="text-align:center"><img src="assets/cdg incept logo.png" alt="CDG Incept" style="height:40px" onerror="this.alt='CDG Incept'"><p style="font-size:11px;color:var(--gray);margin-top:6px">CDG Incept</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div><!-- /app-shell -->
+</div>
+
+<!-- MODAL: WIZARD -->
+<div class="modal-overlay" id="modal-wizard">
+  <div class="modal wide">
+    <div class="modal-header"><h3>Nouvelle demande d'AMM</h3><button class="modal-close" onclick="closeModal('modal-wizard')">✕</button></div>
+    <div class="modal-body">
+      <div class="wizard-steps" id="wizard-tabs"></div>
+      <div class="wizard-pane active" id="wpane-0">
+        <div class="form-group"><label>Nom de la spécialité pharmaceutique *</label><input type="text" id="w-nomMed" placeholder="ex: Amoxicilline 500mg"/></div>
+        <div class="form-row">
+          <div class="form-group"><label>DCI *</label><input type="text" id="w-dci" placeholder="ex: Amoxicilline trihydratée"/></div>
+          <div class="form-group"><label>Dosage *</label><input type="text" id="w-dosage" placeholder="ex: 500mg"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Forme pharmaceutique *</label>
+            <select id="w-forme"><option value="">-- Sélectionner --</option><option>Comprimé</option><option>Comprimé pelliculé</option><option>Comprimé effervescent</option><option>Gélule</option><option>Gélule gastrorésistante</option><option>Sirop</option><option>Solution injectable</option><option>Suspension buvable</option><option>Pommade</option><option>Suppositoire</option></select>
+          </div>
+          <div class="form-group"><label>Voie d'administration</label>
+            <select id="w-voie"><option value="">-- Sélectionner --</option><option>Orale</option><option>Injectable IV</option><option>Injectable IM</option><option>Topique</option><option>Inhalation</option><option>Rectale</option><option>Ophtalmique</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Classe thérapeutique</label><input type="text" id="w-classe" placeholder="ex: Antibiotique - Pénicillines"/></div>
+          <div class="form-group"><label>Conditionnement</label><input type="text" id="w-cond" placeholder="ex: Boîte de 24 gélules"/></div>
+        </div>
+      </div>
+      <div class="wizard-pane" id="wpane-1">
+        <div class="form-group"><label>Nom du laboratoire / titulaire *</label><input type="text" id="w-nomLabo" placeholder="Pré-rempli depuis votre profil"/></div>
+        <div class="form-group"><label>Adresse du laboratoire</label><input type="text" id="w-adresseLabo" placeholder="Adresse complète"/></div>
+        <div class="form-row">
+          <div class="form-group"><label>Pays de fabrication</label><input type="text" id="w-pays" placeholder="ex: Maroc"/></div>
+          <div class="form-group"><label>Nom du fabricant (si différent)</label><input type="text" id="w-fabricant" placeholder="Optionnel"/></div>
+        </div>
+      </div>
+      <div class="wizard-pane" id="wpane-2">
+        <p style="font-size:13px;color:var(--gray);margin-bottom:16px">Cochez les documents inclus dans votre dossier :</p>
+        <div class="doc-checklist">
+          <div class="doc-item"><input type="checkbox" id="doc-admin"><label for="doc-admin">📋 Dossier administratif</label></div>
+          <div class="doc-item"><input type="checkbox" id="doc-chimie"><label for="doc-chimie">⚗️ Dossier chimique et pharmaceutique</label></div>
+          <div class="doc-item"><input type="checkbox" id="doc-toxico"><label for="doc-toxico">🧪 Dossier toxicologique</label></div>
+          <div class="doc-item"><input type="checkbox" id="doc-clinique"><label for="doc-clinique">🏥 Dossier clinique</label></div>
+          <div class="doc-item"><input type="checkbox" id="doc-rcp"><label for="doc-rcp">📄 Résumé des caractéristiques du produit</label></div>
+          <div class="doc-item"><input type="checkbox" id="doc-maquette"><label for="doc-maquette">📦 Maquette de conditionnement</label></div>
+        </div>
+      </div>
+      <div class="wizard-pane" id="wpane-3">
+        <div class="card" style="background:var(--gray-light);box-shadow:none;margin-bottom:16px">
+          <div class="card-title">📋 Récapitulatif</div>
+          <div class="recap-grid" id="wizard-recap"></div>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="w-honneur">
+            Je déclare sur l'honneur que les informations fournies sont exactes et conformes aux exigences réglementaires de l'AMMPS.
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="wizard-prev" onclick="wizardPrev()" style="display:none">← Précédent</button>
+      <button class="btn btn-green" id="wizard-next" onclick="wizardNext()">Suivant →</button>
+      <button class="btn btn-green" id="wizard-submit" onclick="submitWizard()" style="display:none">✅ Soumettre la demande</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: HISTORIQUE -->
+<div class="modal-overlay" id="modal-historique">
+  <div class="modal">
+    <div class="modal-header"><h3>Historique — <span id="hist-ref"></span></h3><button class="modal-close" onclick="closeModal('modal-historique')">✕</button></div>
+    <div class="modal-body"><div class="timeline" id="hist-timeline"></div></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modal-historique')">Fermer</button></div>
+  </div>
+</div>
+
+<!-- MODAL: VÉRIFICATION -->
+<div class="modal-overlay" id="modal-verification">
+  <div class="modal">
+    <div class="modal-header"><h3>Vérification administrative</h3><button class="modal-close" onclick="closeModal('modal-verification')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--gray);margin-bottom:16px">Dossier : <strong id="verif-ref"></strong></p>
+      <div class="form-group"><label>Résultat</label>
+        <select id="verif-resultat">
+          <option value="COMPLET">✅ Dossier complet — Passer en évaluation</option>
+          <option value="INCOMPLET">❌ Dossier incomplet — Demander complément</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Commentaire / Documents manquants</label>
+        <textarea id="verif-comment" rows="4" placeholder="Précisez les documents manquants..." style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;resize:vertical"></textarea>
+      </div>
+      <input type="hidden" id="verif-id"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-verification')">Annuler</button>
+      <button class="btn btn-green" onclick="submitVerification()">Valider</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ÉVALUATION -->
+<div class="modal-overlay" id="modal-evaluation">
+  <div class="modal wide">
+    <div class="modal-header"><h3>Rapport d'évaluation scientifique</h3><button class="modal-close" onclick="closeModal('modal-evaluation')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--gray);margin-bottom:20px">Dossier : <strong id="eval-ref"></strong></p>
+      <div class="form-group"><label>Qualité pharmaceutique</label>
+        <div class="note-row"><input type="range" class="note-slider" id="eval-qualite" min="1" max="10" value="7" oninput="document.getElementById('eval-qualite-val').textContent=this.value"><span class="note-display" id="eval-qualite-val">7</span><span style="font-size:12px;color:var(--gray)">/10</span></div>
+      </div>
+      <div class="form-group"><label>Sécurité clinique</label>
+        <div class="note-row"><input type="range" class="note-slider" id="eval-security" min="1" max="10" value="7" oninput="document.getElementById('eval-security-val').textContent=this.value"><span class="note-display" id="eval-security-val">7</span><span style="font-size:12px;color:var(--gray)">/10</span></div>
+      </div>
+      <div class="form-group"><label>Efficacité thérapeutique</label>
+        <div class="note-row"><input type="range" class="note-slider" id="eval-efficacite" min="1" max="10" value="7" oninput="document.getElementById('eval-efficacite-val').textContent=this.value"><span class="note-display" id="eval-efficacite-val">7</span><span style="font-size:12px;color:var(--gray)">/10</span></div>
+      </div>
+      <div class="form-group"><label>Avis global</label>
+        <div class="avis-toggle">
+          <button class="avis-btn favorable" onclick="selectAvis('FAVORABLE')" id="avis-fav">✅ FAVORABLE</button>
+          <button class="avis-btn defavorable" onclick="selectAvis('DEFAVORABLE')" id="avis-def">❌ DÉFAVORABLE</button>
+        </div>
+        <input type="hidden" id="eval-avis" value=""/>
+      </div>
+      <div class="form-group"><label>Rapport détaillé</label>
+        <textarea id="eval-rapport" rows="5" placeholder="Détaillez votre évaluation scientifique..." style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;resize:vertical"></textarea>
+      </div>
+      <input type="hidden" id="eval-id"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-evaluation')">Annuler</button>
+      <button class="btn btn-green" onclick="submitEvaluation()">Soumettre le rapport</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DÉCISION -->
+<div class="modal-overlay" id="modal-decision">
+  <div class="modal">
+    <div class="modal-header"><h3>Décision finale</h3><button class="modal-close" onclick="closeModal('modal-decision')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--gray);margin-bottom:8px">Dossier : <strong id="dec-ref"></strong></p>
+      <div id="dec-eval-summary" style="background:var(--gray-light);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px"></div>
+      <div class="form-group"><label>Décision</label>
+        <select id="dec-decision">
+          <option value="APPROUVE">✅ APPROUVER — Accorder l'AMM</option>
+          <option value="REJETE">❌ REFUSER — Rejeter la demande</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Motif / Commentaire</label>
+        <textarea id="dec-commentaire" rows="4" placeholder="Justification de la décision..." style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;resize:vertical"></textarea>
+      </div>
+      <input type="hidden" id="dec-id"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-decision')">Annuler</button>
+      <button class="btn btn-green" onclick="submitDecision()">Confirmer la décision</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: COMPLÉMENT -->
+<div class="modal-overlay" id="modal-complement">
+  <div class="modal">
+    <div class="modal-header"><h3>Soumettre un complément</h3><button class="modal-close" onclick="closeModal('modal-complement')">✕</button></div>
+    <div class="modal-body">
+      <div class="alert-banner warning">⚠️ <div><strong id="comp-ref"></strong><br><span id="comp-admin-comment" style="font-size:12px"></span></div></div>
+      <div class="form-group" style="margin-top:16px"><label>Informations complémentaires</label>
+        <textarea id="comp-comment" rows="4" placeholder="Décrivez les compléments apportés..." style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;resize:vertical"></textarea>
+      </div>
+      <input type="hidden" id="comp-id"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-complement')">Annuler</button>
+      <button class="btn btn-orange" onclick="submitComplement()">📤 Soumettre le complément</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DÉTAIL -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal wide">
+    <div class="modal-header"><h3>Détail — <span id="detail-ref"></span></h3><button class="modal-close" onclick="closeModal('modal-detail')">✕</button></div>
+    <div class="modal-body"><div id="detail-content"></div></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modal-detail')">Fermer</button></div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8080/api';
+
+let state = { token:null, role:null, nom:null, email:null, id:null, nomLaboratoire:null, demoMode:false };
+let allDossiers = [];
+let wizardStep = 0;
+const WIZARD_STEPS = ['1. Médicament','2. Titulaire','3. Documents','4. Confirmation'];
+
+// ── MOCK DATA (mode démonstration) ──
+const MOCK_USERS = {
+  'admin@amm.ma':      { password:'admin123', role:'ADMIN',       nom:'Administrateur AMMPS', id:1, nomLaboratoire:null },
+  'evaluateur@amm.ma': { password:'eval123',  role:'EVALUATEUR',  nom:'Dr. Karim Benzakour',  id:2, nomLaboratoire:null },
+  'direction@amm.ma':  { password:'dir123',   role:'DIRECTION',   nom:'Directeur Général',    id:3, nomLaboratoire:null },
+  'labo@amm.ma':       { password:'labo123',  role:'LABORATOIRE', nom:'Sothema',              id:4, nomLaboratoire:'Sothema' }
+};
+
+let mockDossiers = [
+  { id:1, reference:'AMM-2026-0001', nomMedicament:'Amoxicilline 500mg', dci:'Amoxicilline trihydratée', dosage:'500mg', formePharmaceutique:'Gélule', voieAdministration:'Orale', classeTherapeutique:'Antibiotique - Pénicillines', nomLaboratoire:'Sothema', emailLaboratoire:'regulatory@sothema.ma', statut:'APPROUVE', dateDepot:'2026-03-08T10:00:00', numeroAMM:'AMM-MA-2026-00001', proprietaireId:4, avisEvaluateur:'FAVORABLE', noteQualite:9, noteSecurity:8, noteEfficacite:9 },
+  { id:2, reference:'AMM-2026-0002', nomMedicament:'Ibuprofène 400mg', dci:'Ibuprofène', dosage:'400mg', formePharmaceutique:'Comprimé pelliculé', voieAdministration:'Orale', classeTherapeutique:'AINS - Anti-inflammatoire', nomLaboratoire:'Cooper Pharma', emailLaboratoire:'ar@cooperpharma.ma', statut:'EN_EVALUATION', dateDepot:'2026-04-02T09:00:00', proprietaireId:4 },
+  { id:3, reference:'AMM-2026-0003', nomMedicament:'Paracétamol 1g', dci:'Paracétamol', dosage:'1000mg', formePharmaceutique:'Comprimé effervescent', voieAdministration:'Orale', classeTherapeutique:'Analgésique - Antipyrétique', nomLaboratoire:'Maphar', emailLaboratoire:'amm@maphar.ma', statut:'EN_VERIFICATION', dateDepot:'2026-04-17T14:00:00', proprietaireId:4 },
+  { id:4, reference:'AMM-2026-0004', nomMedicament:'Oméprazole 20mg', dci:'Oméprazole', dosage:'20mg', formePharmaceutique:'Gélule gastrorésistante', voieAdministration:'Orale', classeTherapeutique:"Inhibiteur de la pompe à protons", nomLaboratoire:'Pharma 5', emailLaboratoire:'regulatory@pharma5.ma', statut:'INCOMPLET', dateDepot:'2026-04-07T11:00:00', commentaireAdmin:'Documents manquants : études de stabilité et certificat de BPF', proprietaireId:4 },
+  { id:5, reference:'AMM-2026-0005', nomMedicament:'Metformine 850mg', dci:'Metformine chlorhydrate', dosage:'850mg', formePharmaceutique:'Comprimé pelliculé', voieAdministration:'Orale', classeTherapeutique:'Antidiabétique - Biguanides', nomLaboratoire:'Sothema', emailLaboratoire:'regulatory@sothema.ma', statut:'REJETE', dateDepot:'2026-02-21T10:00:00', proprietaireId:4, avisEvaluateur:'DEFAVORABLE', noteQualite:6, noteSecurity:5, noteEfficacite:4, rapportEvaluation:"Bioéquivalence non démontrée. Données cliniques insuffisantes.", commentaireDirection:'Rejeté : données cliniques non conformes aux exigences AMMPS' },
+  { id:6, reference:'AMM-2026-0006', nomMedicament:'Atorvastatine 10mg', dci:'Atorvastatine calcique', dosage:'10mg', formePharmaceutique:'Comprimé pelliculé', voieAdministration:'Orale', classeTherapeutique:'Hypolipémiant - Statine', nomLaboratoire:'Cooper Pharma', emailLaboratoire:'ar@cooperpharma.ma', statut:'DEPOSE', dateDepot:'2026-04-21T16:00:00', proprietaireId:4 }
+];
+let mockIdCounter = 7;
+
+const MOCK_HIST = {
+  1:[{id:1,acteur:'SYSTEME',action:'DEPOT_DOSSIER',ancienStatut:null,nouveauStatut:'DEPOSE',commentaire:'Dossier soumis par Sothema',dateAction:'2026-03-08T10:00:00'},{id:2,acteur:'admin@amm.ma',action:'VERIFICATION_ADMINISTRATIVE',ancienStatut:'DEPOSE',nouveauStatut:'EN_EVALUATION',commentaire:'Dossier complet',dateAction:'2026-03-11T09:00:00'},{id:3,acteur:'evaluateur@amm.ma',action:'EVALUATION_TECHNIQUE',ancienStatut:'EN_EVALUATION',nouveauStatut:'EN_VALIDATION',commentaire:'Bioéquivalence validée',dateAction:'2026-03-23T14:00:00'},{id:4,acteur:'direction@amm.ma',action:'DECISION_APPROBATION',ancienStatut:'EN_VALIDATION',nouveauStatut:'APPROUVE',commentaire:'AMM accordée : AMM-MA-2026-00001',dateAction:'2026-04-02T10:00:00'}],
+  2:[{id:5,acteur:'SYSTEME',action:'DEPOT_DOSSIER',ancienStatut:null,nouveauStatut:'DEPOSE',commentaire:'Dossier soumis par Cooper Pharma',dateAction:'2026-04-02T09:00:00'},{id:6,acteur:'admin@amm.ma',action:'VERIFICATION_ADMINISTRATIVE',ancienStatut:'DEPOSE',nouveauStatut:'EN_EVALUATION',commentaire:'Dossier complet',dateAction:'2026-04-05T10:00:00'}],
+  3:[{id:7,acteur:'SYSTEME',action:'DEPOT_DOSSIER',ancienStatut:null,nouveauStatut:'DEPOSE',commentaire:'Dossier soumis par Maphar',dateAction:'2026-04-17T14:00:00'}],
+  4:[{id:8,acteur:'SYSTEME',action:'DEPOT_DOSSIER',ancienStatut:null,nouveauStatut:'DEPOSE',commentaire:'Dossier soumis par Pharma 5',dateAction:'2026-04-07T11:00:00'},{id:9,acteur:'admin@amm.ma',action:'VERIFICATION_ADMINISTRATIVE',ancienStatut:'DEPOSE',nouveauStatut:'INCOMPLET',commentaire:'Documents manquants : études de stabilité et certificat de BPF',dateAction:'2026-04-10T09:00:00'}],
+  5:[{id:10,acteur:'SYSTEME',action:'DEPOT_DOSSIER',ancienStatut:null,nouveauStatut:'DEPOSE',commentaire:'Dossier soumis par Sothema',dateAction:'2026-02-21T10:00:00'},{id:11,acteur:'admin@amm.ma',action:'VERIFICATION_ADMINISTRATIVE',ancienStatut:'DEPOSE',nouveauStatut:'EN_EVALUATION',commentaire:'Dossier complet',dateAction:'2026-02-24T10:00:00'},{id:12,acteur:'evaluateur@amm.ma',action:'EVALUATION_TECHNIQUE',ancienStatut:'EN_EVALUATION',nouveauStatut:'EN_VALIDATION',commentaire:'Avis DEFAVORABLE — Bioéquivalence non démontrée',dateAction:'2026-03-08T14:00:00'},{id:13,acteur:'direction@amm.ma',action:'DECISION_REJET',ancienStatut:'EN_VALIDATION',nouveauStatut:'REJETE',commentaire:'Rejeté : données cliniques non conformes',dateAction:'2026-03-18T11:00:00'}],
+  6:[{id:14,acteur:'SYSTEME',action:'DEPOT_DOSSIER',ancienStatut:null,nouveauStatut:'DEPOSE',commentaire:'Dossier soumis par Cooper Pharma',dateAction:'2026-04-21T16:00:00'}]
+};
+
+function getMockData(url, opts) {
+  const m = url.match(/\/dossiers\/(\d+)\/historique/);
+  if (m) return Promise.resolve(MOCK_HIST[+m[1]]||[]);
+  const m2 = url.match(/\/dossiers\/(\d+)\/(verification|evaluation|decision|complement)/);
+  if (m2) {
+    const id=+m2[1]; const action=m2[2];
+    const body=opts.body?JSON.parse(opts.body):{};
+    const d=mockDossiers.find(x=>x.id===id);
+    if (!d) return Promise.reject(new Error('Dossier introuvable'));
+    if (action==='verification') {
+      d.statut=body.resultat==='COMPLET'?'EN_EVALUATION':'INCOMPLET';
+      if (body.commentaire) d.commentaireAdmin=body.commentaire;
+    } else if (action==='evaluation') {
+      d.noteQualite=+body.noteQualite; d.noteSecurity=+body.noteSecurity; d.noteEfficacite=+body.noteEfficacite;
+      d.avisEvaluateur=body.avisEvaluateur; d.rapportEvaluation=body.rapportEvaluation;
+      d.statut='EN_VALIDATION';
+    } else if (action==='decision') {
+      d.statut=body.decision; d.commentaireDirection=body.commentaire;
+      if (body.decision==='APPROUVE') d.numeroAMM='AMM-MA-2026-0000'+(mockDossiers.filter(x=>x.statut==='APPROUVE').length+1);
+    } else if (action==='complement') {
+      d.statut='EN_VERIFICATION';
+    }
+    d.dateDerniereModification=new Date().toISOString();
+    return Promise.resolve(d);
+  }
+  if (url==='/dossiers' && opts.method==='POST') {
+    const body=JSON.parse(opts.body);
+    const nd={...body, id:mockIdCounter++, reference:`AMM-2026-00${String(mockIdCounter).padStart(2,'0')}`, statut:'DEPOSE', dateDepot:new Date().toISOString(), proprietaireId:state.id};
+    mockDossiers.push(nd);
+    return Promise.resolve(nd);
+  }
+  if (url==='/dossiers') {
+    const list = state.role==='LABORATOIRE' ? mockDossiers.filter(x=>x.proprietaireId===state.id||x.nomLaboratoire===state.nomLaboratoire) : [...mockDossiers];
+    return Promise.resolve(list);
+  }
+  return Promise.resolve([]);
+}
+
+// ── AUTH ──
+function showPage(page) {
+  document.querySelectorAll('.auth-page').forEach(p => p.classList.remove('active'));
+  document.getElementById('app').classList.remove('active');
+  if (page === 'login') document.getElementById('page-login').classList.add('active');
+  else if (page === 'register') document.getElementById('page-register').classList.add('active');
+  else document.getElementById('app').classList.add('active');
+}
+
+function saveSession(data) {
+  state = { token:data.token, role:data.role, nom:data.nom, email:data.email, id:data.id, nomLaboratoire:data.nomLaboratoire, demoMode:false };
+  localStorage.setItem('amm_token', data.token);
+  localStorage.setItem('amm_role', data.role);
+  localStorage.setItem('amm_nom', data.nom);
+  localStorage.setItem('amm_email', data.email);
+  localStorage.setItem('amm_id', data.id||'');
+  localStorage.setItem('amm_nomLabo', data.nomLaboratoire||'');
+}
+
+function loadSession() {
+  const token = localStorage.getItem('amm_token');
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp * 1000 < Date.now()) { clearSession(); return false; }
+    state = { token, role:localStorage.getItem('amm_role'), nom:localStorage.getItem('amm_nom'),
+      email:localStorage.getItem('amm_email'), id:localStorage.getItem('amm_id')||null,
+      nomLaboratoire:localStorage.getItem('amm_nomLabo')||null, demoMode:false };
+    return true;
+  } catch { clearSession(); return false; }
+}
+
+function clearSession() {
+  ['amm_token','amm_role','amm_nom','amm_email','amm_id','amm_nomLabo'].forEach(k => localStorage.removeItem(k));
+  state = { token:null, role:null, nom:null, email:null, id:null, nomLaboratoire:null, demoMode:false };
+}
+
+function quickLogin(email, password) {
+  document.getElementById('login-email').value = email;
+  document.getElementById('login-password').value = password;
+  doLogin();
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!email || !password) { errEl.textContent = 'Veuillez saisir email et mot de passe.'; errEl.style.display='block'; return; }
+  const btn = document.getElementById('btn-login');
+  btn.textContent = 'Connexion…'; btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email, password}),
+      signal: AbortSignal.timeout(4000)
+    });
+    if (!res.ok) throw new Error('Identifiants incorrects');
+    saveSession(await res.json());
+    initApp();
+  } catch(e) {
+    if (e.message === 'Identifiants incorrects') {
+      errEl.textContent = 'Identifiants incorrects.'; errEl.style.display = 'block';
+    } else {
+      // Backend unreachable — try demo mode
+      const mu = MOCK_USERS[email];
+      if (mu && mu.password === password) {
+        state = { token:'demo', role:mu.role, nom:mu.nom, email, id:mu.id, nomLaboratoire:mu.nomLaboratoire, demoMode:true };
+        initApp();
+      } else {
+        errEl.textContent = 'Backend non disponible. Utilisez les boutons d\'accès rapide ci-dessous.';
+        errEl.style.display = 'block';
+      }
+    }
+  } finally { btn.textContent = 'Se connecter'; btn.disabled = false; }
+}
+
+async function doRegister() {
+  const errEl = document.getElementById('reg-error');
+  const sucEl = document.getElementById('reg-success');
+  errEl.style.display = 'none'; sucEl.style.display = 'none';
+  const nom = document.getElementById('reg-nom').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  const nomLaboratoire = document.getElementById('reg-nomLabo').value.trim();
+  const typeLaboratoire = document.getElementById('reg-type').value;
+  const adresse = document.getElementById('reg-adresse').value.trim();
+  const telephone = document.getElementById('reg-tel').value.trim();
+  const ice = document.getElementById('reg-ice').value.trim();
+  const cgu = document.getElementById('reg-cgu').checked;
+  if (!nom || !email || !pass || !nomLaboratoire) { errEl.textContent = 'Veuillez remplir tous les champs obligatoires.'; errEl.style.display = 'block'; return; }
+  if (pass !== pass2) { errEl.textContent = 'Les mots de passe ne correspondent pas.'; errEl.style.display = 'block'; return; }
+  if (!cgu) { errEl.textContent = "Veuillez accepter les conditions d'utilisation."; errEl.style.display = 'block'; return; }
+  try {
+    const res = await fetch(`${API}/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ nom, email, password:pass, nomLaboratoire, typeLaboratoire, adresse, telephone, ice }) });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.message||'Erreur inscription'); }
+    saveSession(await res.json());
+    sucEl.textContent = 'Compte créé avec succès ! Redirection...';
+    sucEl.style.display = 'block';
+    setTimeout(() => initApp(), 1200);
+  } catch(e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+}
+
+function doLogout() { clearSession(); showPage('login'); document.getElementById('demo-banner').style.display='none'; }
+
+// ── APP ──
+function initApp() {
+  showPage('app');
+  // Avatar with initials
+  const initials = (state.nom||'?').split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  document.getElementById('sb-avatar').textContent = initials;
+  document.getElementById('sb-nom').textContent = state.nom || '—';
+  const badge = document.getElementById('sb-role-badge');
+  badge.textContent = roleName(state.role);
+  badge.className = `role-badge ${state.role}`;
+  // Demo banner
+  document.getElementById('demo-banner').style.display = state.demoMode ? 'flex' : 'none';
+  buildNav();
+  renderNotifications();
+  navigateTo('dashboard');
+}
+
+function roleName(r) {
+  return {ADMIN:'Administrateur',EVALUATEUR:'Évaluateur',DIRECTION:'Direction',LABORATOIRE:'Laboratoire'}[r]||r;
+}
+
+const NAV_CONFIG = {
+  LABORATOIRE:[{id:'dashboard',icon:'🏠',label:'Mon tableau de bord'},{id:'dossiers',icon:'📁',label:'Mes dossiers AMM'},{id:'about',icon:'ℹ️',label:'À propos'}],
+  ADMIN:[{id:'dashboard',icon:'🏠',label:'Tableau de bord'},{id:'queue',icon:'📋',label:"File d'attente",badgeKey:'queue'},{id:'dossiers',icon:'📁',label:'Tous les dossiers'},{id:'stats',icon:'📊',label:'Statistiques'},{id:'about',icon:'ℹ️',label:'À propos'}],
+  EVALUATEUR:[{id:'dashboard',icon:'🏠',label:'Tableau de bord'},{id:'evaluation',icon:'🔬',label:'Dossiers à évaluer',badgeKey:'eval'},{id:'dossiers',icon:'📁',label:'Tous les dossiers'},{id:'about',icon:'ℹ️',label:'À propos'}],
+  DIRECTION:[{id:'dashboard',icon:'🏠',label:'Tableau de bord'},{id:'validation',icon:'✅',label:'Décisions en attente',badgeKey:'valid'},{id:'dossiers',icon:'📁',label:'Tous les dossiers'},{id:'stats',icon:'📊',label:'Statistiques globales'},{id:'about',icon:'ℹ️',label:'À propos'}]
+};
+
+function buildNav() {
+  const items = NAV_CONFIG[state.role]||[];
+  document.getElementById('nav-menu').innerHTML = items.map(it =>
+    `<div class="nav-item" id="nav-${it.id}" onclick="navigateTo('${it.id}')">
+      <span class="nav-icon">${it.icon}</span><span>${it.label}</span>
+      ${it.badgeKey?`<span class="nav-badge" id="nbadge-${it.badgeKey}" style="display:none">0</span>`:''}
+    </div>`).join('');
+}
+
+const TITLES = {dashboard:'Tableau de bord',dossiers:'Dossiers AMM',queue:"File d'attente",evaluation:'Évaluation',validation:'Validation',stats:'Statistiques',about:'À propos'};
+
+function navigateTo(id) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById(`nav-${id}`);
+  if (navEl) navEl.classList.add('active');
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const sec = document.getElementById(`sec-${id}`);
+  if (sec) sec.classList.add('active');
+  document.getElementById('page-title').textContent = TITLES[id]||id;
+  if (id==='dashboard') loadDashboard();
+  else if (id==='dossiers') loadDossiers();
+  else if (id==='queue') loadQueue();
+  else if (id==='evaluation') loadEvaluations();
+  else if (id==='validation') loadValidations();
+  else if (id==='stats') loadStats();
+}
+
+// ── API ──
+async function apiFetch(url, opts={}) {
+  if (state.demoMode) return getMockData(url, opts);
+  const res = await fetch(`${API}${url}`, {
+    ...opts, headers:{'Content-Type':'application/json','Authorization':`Bearer ${state.token}`,...(opts.headers||{})}
+  });
+  if (res.status === 401 || res.status === 403) {
+    clearSession(); showPage('login');
+    throw new Error('Session expirée. Veuillez vous reconnecter.');
+  }
+  if (!res.ok) { const t = await res.text(); throw new Error(t||`Erreur ${res.status}`); }
+  return res.json();
+}
+
+// ── DASHBOARD ──
+async function loadDashboard() {
+  if (state.role==='LABORATOIRE') await loadDashLabo();
+  else if (state.role==='ADMIN') await loadDashAdmin();
+  else if (state.role==='EVALUATEUR') await loadDashEval();
+  else if (state.role==='DIRECTION') await loadDashDir();
+}
+
+async function loadDashLabo() {
+  const d = await apiFetch('/dossiers');
+  const incomplets = d.filter(x=>x.statut==='INCOMPLET');
+  const enCours = d.filter(x=>!['APPROUVE','REJETE','ANNULE'].includes(x.statut));
+  document.getElementById('dashboard-content').innerHTML = `
+    ${incomplets.length?`<div class="alert-banner warning">⚠️ <div><strong>${incomplets.length} dossier(s) incomplet(s)</strong> nécessitent votre action.</div></div>`:''}
+    <div class="kpi-grid">
+      <div class="kpi-card green"><div class="kpi-val">${d.length}</div><div class="kpi-label">Total mes dossiers</div></div>
+      <div class="kpi-card blue"><div class="kpi-val">${enCours.length}</div><div class="kpi-label">En cours de traitement</div></div>
+      <div class="kpi-card orange"><div class="kpi-val">${incomplets.length}</div><div class="kpi-label">Action requise</div></div>
+      <div class="kpi-card green"><div class="kpi-val">${d.filter(x=>x.statut==='APPROUVE').length}</div><div class="kpi-label">AMM accordées</div></div>
+    </div>
+    <div class="card"><div class="card-title">📁 Mes dossiers récents</div>${renderTable(d.slice(0,8),true)}</div>
+    <div style="margin-top:16px"><button class="btn btn-green" onclick="openWizard()" style="padding:12px 24px;font-size:15px">+ Nouvelle demande d'AMM</button></div>`;
+}
+
+async function loadDashAdmin() {
+  const d = await apiFetch('/dossiers');
+  const queue = d.filter(x=>['DEPOSE','EN_VERIFICATION'].includes(x.statut));
+  const incomplets = d.filter(x=>x.statut==='INCOMPLET');
+  updateBadge('queue', queue.length);
+  document.getElementById('dashboard-content').innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card blue"><div class="kpi-val">${d.length}</div><div class="kpi-label">Total dossiers</div></div>
+      <div class="kpi-card orange"><div class="kpi-val">${queue.length}</div><div class="kpi-label">À vérifier</div></div>
+      <div class="kpi-card red"><div class="kpi-val">${incomplets.length}</div><div class="kpi-label">Dossiers incomplets</div></div>
+      <div class="kpi-card green"><div class="kpi-val">${d.filter(x=>x.statut==='APPROUVE').length}</div><div class="kpi-label">AMM accordées</div></div>
+    </div>
+    ${queue.length?`<div class="card"><div class="card-title">⏳ File d'attente (${queue.length})</div>
+    ${queue.slice(0,5).map(x=>`<div class="queue-item"><div class="queue-item-info"><div class="ref">${x.reference} — ${x.nomMedicament}</div><div class="sub">${x.nomLaboratoire} · ${fmtDate(x.dateDepot)}</div></div><button class="btn btn-sm btn-orange" onclick="openVerification(${x.id},'${x.reference}')">Vérifier</button></div>`).join('')}</div>`:''}
+    ${incomplets.length?`<div class="card"><div class="card-title">❌ Dossiers incomplets</div>
+    ${incomplets.slice(0,4).map(x=>`<div class="queue-item"><div class="queue-item-info"><div class="ref">${x.reference} — ${x.nomMedicament}</div><div class="sub">${x.nomLaboratoire}</div>${x.commentaireAdmin?`<div class="alert-txt">${x.commentaireAdmin}</div>`:''}</div><span class="badge badge-INCOMPLET">En attente</span></div>`).join('')}</div>`:''}`;
+}
+
+async function loadDashEval() {
+  const d = await apiFetch('/dossiers');
+  const aEvaluer = d.filter(x=>x.statut==='EN_EVALUATION');
+  updateBadge('eval', aEvaluer.length);
+  document.getElementById('dashboard-content').innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card purple"><div class="kpi-val">${aEvaluer.length}</div><div class="kpi-label">À évaluer</div></div>
+      <div class="kpi-card green"><div class="kpi-val">${d.filter(x=>['EN_VALIDATION','APPROUVE','REJETE'].includes(x.statut)).length}</div><div class="kpi-label">Évaluations effectuées</div></div>
+      <div class="kpi-card blue"><div class="kpi-val">${d.length}</div><div class="kpi-label">Total dossiers</div></div>
+    </div>
+    ${aEvaluer.length?`<div class="card"><div class="card-title">🔬 Dossiers à évaluer</div>
+    ${aEvaluer.map(x=>`<div class="queue-item"><div class="queue-item-info"><div class="ref">${x.reference} — ${x.nomMedicament}</div><div class="sub">${x.nomLaboratoire} · ${x.dci||''} ${x.dosage||''}</div>${x.classeTherapeutique?`<div style="font-size:11px;color:var(--blue)">🏷️ ${x.classeTherapeutique}</div>`:''}</div><button class="btn btn-sm btn-blue" onclick="openEvaluation(${x.id},'${x.reference}')">Évaluer</button></div>`).join('')}</div>`
+    :'<div class="card"><div class="empty-state"><div class="empty-icon">✅</div><p>Aucun dossier à évaluer.</p></div></div>'}`;
+}
+
+async function loadDashDir() {
+  const d = await apiFetch('/dossiers');
+  const enAttente = d.filter(x=>x.statut==='EN_VALIDATION');
+  updateBadge('valid', enAttente.length);
+  document.getElementById('dashboard-content').innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card blue"><div class="kpi-val">${d.length}</div><div class="kpi-label">Total dossiers</div></div>
+      <div class="kpi-card orange"><div class="kpi-val">${enAttente.length}</div><div class="kpi-label">Décisions en attente</div></div>
+      <div class="kpi-card green"><div class="kpi-val">${d.filter(x=>x.statut==='APPROUVE').length}</div><div class="kpi-label">AMM accordées</div></div>
+      <div class="kpi-card red"><div class="kpi-val">${d.filter(x=>x.statut==='REJETE').length}</div><div class="kpi-label">Dossiers rejetés</div></div>
+    </div>
+    ${enAttente.length?`<div class="card"><div class="card-title">⚖️ Dossiers en attente de décision (${enAttente.length})</div>
+    ${enAttente.map(x=>`<div class="queue-item"><div class="queue-item-info"><div class="ref">${x.reference} — ${x.nomMedicament}</div>
+      <div class="sub">${x.nomLaboratoire} · Avis : <strong style="color:${x.avisEvaluateur==='FAVORABLE'?'var(--green)':'var(--red)'}">${x.avisEvaluateur||'—'}</strong></div></div>
+      <button class="btn btn-sm btn-green" onclick='openDecision(${x.id},"${x.reference}",${JSON.stringify(x)})'>Décider</button></div>`).join('')}</div>`
+    :'<div class="card"><div class="empty-state"><div class="empty-icon">✅</div><p>Aucune décision en attente.</p></div></div>'}`;
+}
+
+function updateBadge(key, count) {
+  const el = document.getElementById(`nbadge-${key}`);
+  if (!el) return;
+  el.style.display = count>0?'inline-block':'none';
+  el.textContent = count;
+}
+
+// ── DOSSIERS ──
+async function loadDossiers() {
+  document.getElementById('btn-new-dossier').style.display = state.role==='LABORATOIRE'?'inline-block':'none';
+  document.getElementById('dossiers-title').textContent = state.role==='LABORATOIRE'?'Mes dossiers AMM':'Tous les dossiers AMM';
+  allDossiers = await apiFetch('/dossiers');
+  renderDossiersTableFull(allDossiers);
+}
+
+function filterTable() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const st = document.getElementById('filter-statut').value;
+  renderDossiersTableFull(allDossiers.filter(d =>
+    (!q || d.reference.toLowerCase().includes(q) || d.nomMedicament.toLowerCase().includes(q) || d.nomLaboratoire.toLowerCase().includes(q)) && (!st || d.statut===st)
+  ));
+}
+
+function renderDossiersTableFull(dossiers) {
+  document.getElementById('dossiers-table-wrap').innerHTML = renderTable(dossiers, false);
+}
+
+function renderTable(dossiers, compact) {
+  if (!dossiers.length) return '<div class="empty-state"><div class="empty-icon">📂</div><p>Aucun dossier trouvé.</p></div>';
+  const isLabo = state.role==='LABORATOIRE';
+  const canVerif = state.role==='ADMIN';
+  const canEval = state.role==='EVALUATEUR';
+  const canDecide = state.role==='DIRECTION';
+  return `<table>
+    <thead><tr><th>Référence</th><th>Médicament</th>${!compact?'<th>Laboratoire</th>':''}<th>Statut</th><th>Date dépôt</th>${!compact?'<th>Numéro AMM</th>':''}<th>Actions</th></tr></thead>
+    <tbody>${dossiers.map(d=>`<tr>
+      <td><strong>${d.reference}</strong></td>
+      <td>${d.nomMedicament}<br><span style="font-size:11px;color:var(--gray)">${d.dci||''} ${d.dosage||''}</span></td>
+      ${!compact?`<td>${d.nomLaboratoire}</td>`:''}
+      <td><span class="badge badge-${d.statut}">${sLabel(d.statut)}</span></td>
+      <td style="font-size:12px;color:var(--gray)">${fmtDate(d.dateDepot)}</td>
+      ${!compact?`<td style="font-size:12px;color:var(--green);font-weight:600">${d.numeroAMM||'—'}</td>`:''}
+      <td><div class="table-actions">
+        <button class="btn btn-sm btn-outline" onclick='showDetail(${JSON.stringify(d)})'>🔍</button>
+        <button class="btn btn-sm btn-outline" onclick="showHistorique(${d.id},'${d.reference}')">📜</button>
+        ${canVerif&&['DEPOSE','EN_VERIFICATION'].includes(d.statut)?`<button class="btn btn-sm btn-orange" onclick="openVerification(${d.id},'${d.reference}')">Vérifier</button>`:''}
+        ${canEval&&d.statut==='EN_EVALUATION'?`<button class="btn btn-sm btn-blue" onclick="openEvaluation(${d.id},'${d.reference}')">Évaluer</button>`:''}
+        ${canDecide&&d.statut==='EN_VALIDATION'?`<button class="btn btn-sm btn-green" onclick='openDecision(${d.id},"${d.reference}",${JSON.stringify(d)})'>Décider</button>`:''}
+        ${isLabo&&d.statut==='INCOMPLET'?`<button class="btn btn-sm btn-orange" onclick="openComplement(${d.id},'${d.reference}','${(d.commentaireAdmin||'').replace(/'/g,"\\'")}')">Compléter</button>`:''}
+      </div></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ── QUEUE ──
+async function loadQueue() {
+  const d = await apiFetch('/dossiers').catch(()=>[]);
+  const queue = d.filter(x=>['DEPOSE','EN_VERIFICATION'].includes(x.statut));
+  const incomplets = d.filter(x=>x.statut==='INCOMPLET');
+  updateBadge('queue', queue.length);
+  document.getElementById('queue-content').innerHTML = `
+    <div class="card"><div class="card-title">⏳ À vérifier (${queue.length})</div>
+    ${queue.length?queue.map(x=>`<div class="queue-item"><div class="queue-item-info"><div class="ref">${x.reference} — ${x.nomMedicament}</div><div class="sub">${x.nomLaboratoire} · ${fmtDate(x.dateDepot)}</div></div>
+      <div class="table-actions"><button class="btn btn-sm btn-outline" onclick="showHistorique(${x.id},'${x.reference}')">📜</button><button class="btn btn-sm btn-orange" onclick="openVerification(${x.id},'${x.reference}')">Vérifier</button></div></div>`).join('')
+    :'<div class="empty-state"><div class="empty-icon">✅</div><p>File vide.</p></div>'}</div>
+    <div class="card"><div class="card-title">❌ Incomplets — attente complément (${incomplets.length})</div>
+    ${incomplets.length?incomplets.map(x=>`<div class="queue-item"><div class="queue-item-info"><div class="ref">${x.reference} — ${x.nomMedicament}</div><div class="sub">${x.nomLaboratoire}</div>${x.commentaireAdmin?`<div class="alert-txt">📋 ${x.commentaireAdmin}</div>`:''}</div><span class="badge badge-INCOMPLET">En attente</span></div>`).join('')
+    :'<div class="empty-state"><div class="empty-icon">✅</div><p>Aucun dossier incomplet.</p></div>'}</div>`;
+}
+
+// ── EVALUATIONS ──
+async function loadEvaluations() {
+  const d = await apiFetch('/dossiers').catch(()=>[]);
+  const aEvaluer = d.filter(x=>x.statut==='EN_EVALUATION');
+  updateBadge('eval', aEvaluer.length);
+  document.getElementById('eval-content').innerHTML = `<div class="card"><div class="card-title">🔬 À évaluer (${aEvaluer.length})</div>
+    ${aEvaluer.length?aEvaluer.map(x=>`<div class="queue-item"><div class="queue-item-info"><div class="ref">${x.reference} — ${x.nomMedicament}</div>
+      <div class="sub">${x.nomLaboratoire} · ${x.dci||'—'} ${x.dosage||''}</div>${x.classeTherapeutique?`<div style="font-size:11px;color:var(--blue)">🏷️ ${x.classeTherapeutique}</div>`:''}</div>
+      <div class="table-actions"><button class="btn btn-sm btn-outline" onclick='showDetail(${JSON.stringify(x)})'>🔍</button><button class="btn btn-sm btn-blue" onclick="openEvaluation(${x.id},'${x.reference}')">Évaluer</button></div></div>`).join('')
+    :'<div class="empty-state"><div class="empty-icon">✅</div><p>Aucun dossier à évaluer.</p></div>'}</div>`;
+}
+
+// ── VALIDATIONS ──
+async function loadValidations() {
+  const d = await apiFetch('/dossiers').catch(()=>[]);
+  const enVal = d.filter(x=>x.statut==='EN_VALIDATION');
+  updateBadge('valid', enVal.length);
+  document.getElementById('validation-content').innerHTML = `<div class="card"><div class="card-title">⚖️ Décisions en attente (${enVal.length})</div>
+    ${enVal.length?enVal.map(x=>`<div class="queue-item" style="flex-direction:column;align-items:flex-start;gap:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <div class="queue-item-info"><div class="ref">${x.reference} — ${x.nomMedicament}</div><div class="sub">${x.nomLaboratoire}</div></div>
+        <div class="table-actions"><button class="btn btn-sm btn-outline" onclick='showDetail(${JSON.stringify(x)})'>🔍</button><button class="btn btn-sm btn-green" onclick='openDecision(${x.id},"${x.reference}",${JSON.stringify(x)})'>⚖️ Décider</button></div>
+      </div>
+      ${x.avisEvaluateur?`<div style="background:var(--gray-light);border-radius:8px;padding:10px;width:100%;font-size:13px">
+        Avis évaluateur : <strong style="color:${x.avisEvaluateur==='FAVORABLE'?'var(--green)':'var(--red)'}">● ${x.avisEvaluateur}</strong>
+        ${x.noteQualite!=null?`· Qualité: ${x.noteQualite}/10`:''}${x.noteSecurity!=null?` · Sécurité: ${x.noteSecurity}/10`:''}${x.noteEfficacite!=null?` · Efficacité: ${x.noteEfficacite}/10`:''}
+        ${x.rapportEvaluation?`<div style="margin-top:4px;color:var(--gray);font-style:italic">${x.rapportEvaluation}</div>`:''}
+      </div>`:''}</div>`).join('')
+    :'<div class="empty-state"><div class="empty-icon">✅</div><p>Aucune décision en attente.</p></div>'}</div>`;
+}
+
+// ── STATS ──
+async function loadStats() {
+  const d = await apiFetch('/dossiers').catch(()=>[]);
+  const byS = {};
+  d.forEach(x=>{ byS[x.statut]=(byS[x.statut]||0)+1; });
+  document.getElementById('stats-content').innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card blue"><div class="kpi-val">${d.length}</div><div class="kpi-label">Total dossiers</div></div>
+      <div class="kpi-card green"><div class="kpi-val">${byS['APPROUVE']||0}</div><div class="kpi-label">AMM accordées</div></div>
+      <div class="kpi-card red"><div class="kpi-val">${byS['REJETE']||0}</div><div class="kpi-label">Dossiers rejetés</div></div>
+      <div class="kpi-card orange"><div class="kpi-val">${(byS['DEPOSE']||0)+(byS['EN_VERIFICATION']||0)+(byS['EN_EVALUATION']||0)+(byS['EN_VALIDATION']||0)}</div><div class="kpi-label">En cours</div></div>
+    </div>
+    <div class="card"><div class="card-title">📊 Répartition par statut</div>
+    ${Object.entries(byS).map(([s,n])=>`<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <span class="badge badge-${s}" style="min-width:130px">${sLabel(s)}</span>
+      <div style="flex:1;background:var(--border);border-radius:4px;height:12px;overflow:hidden"><div style="width:${Math.round(n/d.length*100)}%;background:var(--green);height:100%;border-radius:4px"></div></div>
+      <span style="font-size:13px;font-weight:700;min-width:24px">${n}</span>
+    </div>`).join('')}</div>`;
+}
+
+// ── WIZARD ──
+function openWizard() {
+  wizardStep=0;
+  document.getElementById('w-nomLabo').value = state.nomLaboratoire||'';
+  renderWizard();
+  openModal('modal-wizard');
+}
+
+function renderWizard() {
+  document.getElementById('wizard-tabs').innerHTML = WIZARD_STEPS.map((s,i)=>
+    `<div class="wizard-step-tab ${i===wizardStep?'active':i<wizardStep?'done':''}" onclick="if(${i}<${wizardStep})gotoStep(${i})">${s}</div>`).join('');
+  document.querySelectorAll('.wizard-pane').forEach((p,i)=>p.classList.toggle('active',i===wizardStep));
+  document.getElementById('wizard-prev').style.display=wizardStep>0?'inline-block':'none';
+  document.getElementById('wizard-next').style.display=wizardStep<3?'inline-block':'none';
+  document.getElementById('wizard-submit').style.display=wizardStep===3?'inline-block':'none';
+  if (wizardStep===3) buildRecap();
+}
+
+function gotoStep(i) { wizardStep=i; renderWizard(); }
+function wizardNext() { if (!validateStep()) return; wizardStep++; renderWizard(); }
+function wizardPrev() { wizardStep--; renderWizard(); }
+
+function validateStep() {
+  if (wizardStep===0) {
+    if (!document.getElementById('w-nomMed').value.trim()) { alert('Le nom du médicament est obligatoire'); return false; }
+    if (!document.getElementById('w-dci').value.trim()) { alert('La DCI est obligatoire'); return false; }
+    if (!document.getElementById('w-dosage').value.trim()) { alert('Le dosage est obligatoire'); return false; }
+    if (!document.getElementById('w-forme').value) { alert('La forme pharmaceutique est obligatoire'); return false; }
+  }
+  if (wizardStep===1 && !document.getElementById('w-nomLabo').value.trim()) { alert('Le nom du laboratoire est obligatoire'); return false; }
+  return true;
+}
+
+function buildRecap() {
+  const docs = ['Dossier administratif','Dossier chimique','Dossier toxicologique','Dossier clinique','RCP','Maquette'];
+  const ids = ['doc-admin','doc-chimie','doc-toxico','doc-clinique','doc-rcp','doc-maquette'];
+  const checked = docs.filter((_,i)=>document.getElementById(ids[i]).checked).join(', ')||'Aucun';
+  document.getElementById('wizard-recap').innerHTML = `
+    <div class="recap-item"><label>Médicament</label><p>${document.getElementById('w-nomMed').value}</p></div>
+    <div class="recap-item"><label>DCI</label><p>${document.getElementById('w-dci').value}</p></div>
+    <div class="recap-item"><label>Forme</label><p>${document.getElementById('w-forme').value}</p></div>
+    <div class="recap-item"><label>Dosage</label><p>${document.getElementById('w-dosage').value}</p></div>
+    <div class="recap-item"><label>Voie</label><p>${document.getElementById('w-voie').value||'—'}</p></div>
+    <div class="recap-item"><label>Classe</label><p>${document.getElementById('w-classe').value||'—'}</p></div>
+    <div class="recap-item"><label>Laboratoire</label><p>${document.getElementById('w-nomLabo').value}</p></div>
+    <div class="recap-item"><label>Pays fabrication</label><p>${document.getElementById('w-pays').value||'—'}</p></div>
+    <div class="recap-item" style="grid-column:1/-1"><label>Documents joints</label><p>${checked}</p></div>`;
+}
+
+async function submitWizard() {
+  if (!document.getElementById('w-honneur').checked) { alert("Veuillez cocher la déclaration sur l'honneur."); return; }
+  const body = {
+    nomMedicament:document.getElementById('w-nomMed').value.trim(),
+    dci:document.getElementById('w-dci').value.trim(),
+    dosage:document.getElementById('w-dosage').value.trim(),
+    formePharmaceutique:document.getElementById('w-forme').value,
+    voieAdministration:document.getElementById('w-voie').value,
+    classeTherapeutique:document.getElementById('w-classe').value,
+    conditionnement:document.getElementById('w-cond').value,
+    nomLaboratoire:document.getElementById('w-nomLabo').value.trim(),
+    adresseLaboratoire:document.getElementById('w-adresseLabo').value,
+    paysFabrication:document.getElementById('w-pays').value,
+    nomFabricant:document.getElementById('w-fabricant').value,
+    emailLaboratoire:state.email,
+    dossierAdministratif:document.getElementById('doc-admin').checked,
+    dossierChimique:document.getElementById('doc-chimie').checked,
+    dossierToxicologique:document.getElementById('doc-toxico').checked,
+    dossierClinique:document.getElementById('doc-clinique').checked,
+    resumeCaracteristiques:document.getElementById('doc-rcp').checked,
+    maquetteConditionnement:document.getElementById('doc-maquette').checked
+  };
+  try {
+    const saved = await apiFetch('/dossiers',{method:'POST',body:JSON.stringify(body)});
+    closeModal('modal-wizard');
+    addNotif({message:`Dossier ${saved.reference} soumis avec succès.`,type:'success'});
+    navigateTo('dossiers');
+  } catch(e) { alert('Erreur : '+e.message); }
+}
+
+// ── VÉRIFICATION ──
+function openVerification(id, ref) {
+  document.getElementById('verif-id').value=id;
+  document.getElementById('verif-ref').textContent=ref;
+  document.getElementById('verif-comment').value='';
+  openModal('modal-verification');
+}
+async function submitVerification() {
+  const id=document.getElementById('verif-id').value;
+  const resultat=document.getElementById('verif-resultat').value;
+  const commentaire=document.getElementById('verif-comment').value.trim();
+  try {
+    await apiFetch(`/dossiers/${id}/verification`,{method:'PUT',body:JSON.stringify({resultat,commentaire})});
+    closeModal('modal-verification');
+    addNotif({message:`Vérification : dossier ${resultat==='COMPLET'?'passé en évaluation':'déclaré incomplet'}.`,type:resultat==='COMPLET'?'success':'warning'});
+    navigateTo('queue');
+  } catch(e) { alert('Erreur : '+e.message); }
+}
+
+// ── ÉVALUATION ──
+function openEvaluation(id, ref) {
+  document.getElementById('eval-id').value=id;
+  document.getElementById('eval-ref').textContent=ref;
+  document.getElementById('eval-avis').value='';
+  document.getElementById('eval-rapport').value='';
+  ['qualite','security','efficacite'].forEach(n=>{
+    document.getElementById(`eval-${n}`).value=7;
+    document.getElementById(`eval-${n}-val`).textContent=7;
+  });
+  document.getElementById('avis-fav').classList.remove('selected');
+  document.getElementById('avis-def').classList.remove('selected');
+  openModal('modal-evaluation');
+}
+function selectAvis(v) {
+  document.getElementById('eval-avis').value=v;
+  document.getElementById('avis-fav').classList.toggle('selected',v==='FAVORABLE');
+  document.getElementById('avis-def').classList.toggle('selected',v==='DEFAVORABLE');
+}
+async function submitEvaluation() {
+  const id=document.getElementById('eval-id').value;
+  const avis=document.getElementById('eval-avis').value;
+  if (!avis) { alert('Veuillez sélectionner un avis'); return; }
+  try {
+    await apiFetch(`/dossiers/${id}/evaluation`,{method:'PUT',body:JSON.stringify({
+      noteQualite:document.getElementById('eval-qualite').value,
+      noteSecurity:document.getElementById('eval-security').value,
+      noteEfficacite:document.getElementById('eval-efficacite').value,
+      avisEvaluateur:avis,
+      rapportEvaluation:document.getElementById('eval-rapport').value
+    })});
+    closeModal('modal-evaluation');
+    addNotif({message:`Rapport d'évaluation soumis — Avis : ${avis}`,type:'success'});
+    navigateTo('evaluation');
+  } catch(e) { alert('Erreur : '+e.message); }
+}
+
+// ── DÉCISION ──
+function openDecision(id, ref, dossier) {
+  document.getElementById('dec-id').value=id;
+  document.getElementById('dec-ref').textContent=ref;
+  document.getElementById('dec-commentaire').value='';
+  const x=typeof dossier==='string'?JSON.parse(dossier):dossier;
+  document.getElementById('dec-eval-summary').innerHTML = x.avisEvaluateur
+    ?`Avis évaluateur : <strong style="color:${x.avisEvaluateur==='FAVORABLE'?'var(--green)':'var(--red)'}">● ${x.avisEvaluateur}</strong>`
+    :'Aucun rapport d\'évaluation.';
+  openModal('modal-decision');
+}
+async function submitDecision() {
+  const id=document.getElementById('dec-id').value;
+  const decision=document.getElementById('dec-decision').value;
+  const commentaire=document.getElementById('dec-commentaire').value.trim();
+  try {
+    const r = await apiFetch(`/dossiers/${id}/decision`,{method:'PUT',body:JSON.stringify({decision,commentaire})});
+    closeModal('modal-decision');
+    addNotif({message:decision==='APPROUVE'?`AMM accordée ! Numéro : ${r.numeroAMM}`:'Dossier rejeté.',type:decision==='APPROUVE'?'success':'warning'});
+    navigateTo('validation');
+  } catch(e) { alert('Erreur : '+e.message); }
+}
+
+// ── COMPLÉMENT ──
+function openComplement(id, ref, adminComment) {
+  document.getElementById('comp-id').value=id;
+  document.getElementById('comp-ref').textContent=ref;
+  document.getElementById('comp-admin-comment').textContent=adminComment||'';
+  document.getElementById('comp-comment').value='';
+  openModal('modal-complement');
+}
+async function submitComplement() {
+  const id=document.getElementById('comp-id').value;
+  const commentaire=document.getElementById('comp-comment').value.trim()||'Complément soumis';
+  try {
+    await apiFetch(`/dossiers/${id}/complement`,{method:'PUT',body:JSON.stringify({commentaire})});
+    closeModal('modal-complement');
+    addNotif({message:'Complément soumis. Votre dossier repassera en vérification.',type:'info'});
+    navigateTo('dossiers');
+  } catch(e) { alert('Erreur : '+e.message); }
+}
+
+// ── HISTORIQUE ──
+async function showHistorique(id, ref) {
+  document.getElementById('hist-ref').textContent=ref;
+  document.getElementById('hist-timeline').innerHTML='<p style="color:var(--gray)">Chargement...</p>';
+  openModal('modal-historique');
+  try {
+    const hist = await apiFetch(`/dossiers/${id}/historique`);
+    document.getElementById('hist-timeline').innerHTML = hist.length
+      ?hist.map(h=>`<div class="tl-item">
+          <div class="tl-dot ${h.action.includes('REJET')||h.action.includes('INCOMPLET')?'red':h.action.includes('DEPOT')?'orange':h.action.includes('APPROBATION')?'':'blue'}"></div>
+          <div class="tl-date">${fmtDateTime(h.dateAction)} — <strong>${h.acteur||'—'}</strong></div>
+          <div class="tl-action">${aLabel(h.action)}</div>
+          ${h.ancienStatut?`<div style="font-size:11px;color:var(--gray)">${sLabel(h.ancienStatut)} → ${sLabel(h.nouveauStatut)}</div>`:''}
+          ${h.commentaire?`<div class="tl-comment">${h.commentaire}</div>`:''}
+        </div>`).join('')
+      :'<p style="text-align:center;color:var(--gray)">Aucun historique.</p>';
+  } catch { document.getElementById('hist-timeline').innerHTML='<p style="color:var(--red)">Erreur de chargement.</p>'; }
+}
+
+// ── DÉTAIL ──
+function showDetail(dossier) {
+  const d=typeof dossier==='string'?JSON.parse(dossier):dossier;
+  document.getElementById('detail-ref').textContent=d.reference;
+  document.getElementById('detail-content').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div class="form-section-title">💊 Médicament</div>
+        <p><strong>Nom :</strong> ${d.nomMedicament||'—'}</p><p><strong>DCI :</strong> ${d.dci||'—'}</p>
+        <p><strong>Dosage :</strong> ${d.dosage||'—'}</p><p><strong>Forme :</strong> ${d.formePharmaceutique||'—'}</p>
+        <p><strong>Voie :</strong> ${d.voieAdministration||'—'}</p><p><strong>Classe :</strong> ${d.classeTherapeutique||'—'}</p>
+      </div>
+      <div>
+        <div class="form-section-title">🏭 Laboratoire</div>
+        <p><strong>Nom :</strong> ${d.nomLaboratoire||'—'}</p><p><strong>Email :</strong> ${d.emailLaboratoire||'—'}</p>
+        <p><strong>Pays fab. :</strong> ${d.paysFabrication||'—'}</p>
+        <div class="form-section-title" style="margin-top:16px">📋 Statut</div>
+        <p><span class="badge badge-${d.statut}">${sLabel(d.statut)}</span></p>
+        ${d.numeroAMM?`<p style="margin-top:8px;color:var(--green);font-weight:700">🏅 ${d.numeroAMM}</p>`:''}
+        ${d.commentaireAdmin?`<p style="margin-top:8px"><strong>Admin :</strong> ${d.commentaireAdmin}</p>`:''}
+        ${d.commentaireDirection?`<p style="margin-top:4px"><strong>Direction :</strong> ${d.commentaireDirection}</p>`:''}
+      </div>
+    </div>
+    ${d.avisEvaluateur?`<div class="form-section-title">🔬 Évaluation</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="kpi-card"><div class="kpi-val" style="font-size:22px">${d.noteQualite||'—'}</div><div class="kpi-label">Qualité /10</div></div>
+      <div class="kpi-card"><div class="kpi-val" style="font-size:22px">${d.noteSecurity||'—'}</div><div class="kpi-label">Sécurité /10</div></div>
+      <div class="kpi-card"><div class="kpi-val" style="font-size:22px">${d.noteEfficacite||'—'}</div><div class="kpi-label">Efficacité /10</div></div>
+    </div>
+    <p>Avis : <strong style="color:${d.avisEvaluateur==='FAVORABLE'?'var(--green)':'var(--red)'}">● ${d.avisEvaluateur}</strong></p>
+    ${d.rapportEvaluation?`<p style="margin-top:8px;color:var(--gray);font-style:italic">${d.rapportEvaluation}</p>`:''}`:''} `;
+  openModal('modal-detail');
+}
+
+// ── NOTIFICATIONS ──
+function notifKey() { return `notifs_${state.email}`; }
+function getNotifs() { try { return JSON.parse(localStorage.getItem(notifKey())||'[]'); } catch { return []; } }
+function addNotif(n) {
+  const notifs=getNotifs();
+  notifs.unshift({id:Date.now(),message:n.message,type:n.type||'info',read:false,timestamp:new Date().toISOString()});
+  localStorage.setItem(notifKey(),JSON.stringify(notifs.slice(0,30)));
+  renderNotifications();
+}
+function renderNotifications() {
+  const notifs=getNotifs();
+  const unread=notifs.filter(n=>!n.read).length;
+  const badge=document.getElementById('notif-badge');
+  badge.style.display=unread>0?'block':'none';
+  badge.textContent=unread;
+  const list=document.getElementById('notif-list');
+  if (!notifs.length) { list.innerHTML='<div class="notif-empty">Aucune notification</div>'; return; }
+  list.innerHTML=notifs.map(n=>`<div class="notif-item ${n.read?'':'unread'}" onclick="markRead(${n.id})">
+    <div class="notif-msg">${n.type==='success'?'✅':n.type==='warning'?'⚠️':'ℹ️'} ${n.message}</div>
+    <div class="notif-time">${fmtDateTime(n.timestamp)}</div>
+  </div>`).join('');
+}
+function markRead(id) {
+  localStorage.setItem(notifKey(),JSON.stringify(getNotifs().map(n=>n.id===id?{...n,read:true}:n)));
+  renderNotifications();
+}
+function markAllRead() {
+  localStorage.setItem(notifKey(),JSON.stringify(getNotifs().map(n=>({...n,read:true}))));
+  renderNotifications();
+  document.getElementById('notif-dropdown').classList.remove('open');
+}
+function toggleNotifDropdown() { document.getElementById('notif-dropdown').classList.toggle('open'); }
+document.addEventListener('click',e=>{ if(!e.target.closest('.notif-wrapper')) document.getElementById('notif-dropdown').classList.remove('open'); });
+
+// ── MODALS ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }));
+
+// ── UTILS ──
+function fmtDate(s) { if(!s) return '—'; return new Date(s).toLocaleDateString('fr-MA',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+function fmtDateTime(s) { if(!s) return '—'; return new Date(s).toLocaleString('fr-MA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function sLabel(s) { return {DEPOSE:'Déposé',EN_VERIFICATION:'En vérif.',INCOMPLET:'Incomplet',EN_EVALUATION:'En évaluation',EN_VALIDATION:'En validation',APPROUVE:'Approuvé',REJETE:'Rejeté',ANNULE:'Annulé'}[s]||s; }
+function aLabel(a) { return {DEPOT_DOSSIER:'Dépôt du dossier',VERIFICATION_ADMINISTRATIVE:'Vérification administrative',EVALUATION_TECHNIQUE:'Évaluation scientifique',DECISION_APPROBATION:'Décision — Approbation',DECISION_REJET:'Décision — Rejet',PRISE_EN_CHARGE:'Prise en charge',SOUMISSION_COMPLEMENT:'Complément soumis',MISE_A_JOUR_STATUT:'Mise à jour statut'}[a]||a; }
+
+// ── BOOT ──
+document.getElementById('login-password').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('login-email').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+
+function boot() {
+  clearSession();
+  showPage('login');
+}
+boot();
+</script>
+</body>
+</html>
