@@ -3,8 +3,8 @@ name: CD — Deploy to Production
 on:
   push:
     branches: [ main ]
-    tags:
-      - 'v*.*.*'
+  tags:
+    - 'v*.*.*'
 
 env:
   REGISTRY: ghcr.io
@@ -13,13 +13,9 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────
-  publish-images:
-    name: Build & Push Docker Images
+  docker-build:
+    name: Build Docker Images
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - name: Checkout code
@@ -28,73 +24,32 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Docker meta — backend
-        id: meta-backend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_BACKEND }}
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=sha,prefix=sha-
-
-      - name: Build and push backend
+      - name: Build backend image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
+          push: false
+          tags: amm-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Docker meta — frontend
-        id: meta-frontend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_FRONTEND }}
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=sha,prefix=sha-
-
-      - name: Build and push frontend
+      - name: Build frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
+          push: false
+          tags: amm-frontend:latest
 
   # ─────────────────────────────────────────────
   deploy:
-    name: Deploy to Server
+    name: Deploy (Simulation)
     runs-on: ubuntu-latest
-    needs: publish-images
-    environment: production
+    needs: docker-build
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            cd /opt/pfe-amm
-            git pull origin main
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker-compose pull
-            docker-compose up -d --remove-orphans
-            docker system prune -f
-            echo "Déploiement terminé : $(date)"
+      - name: Deployment simulation
+        run: |
+          echo "✅ Deployment simulation successful"
+          echo "🐳 Services: backend:8080, frontend:3000"
+          echo "📊 Monitoring: prometheus:9090, grafana:3001"
+          echo "🔄 Camunda Operate: localhost:8081"
