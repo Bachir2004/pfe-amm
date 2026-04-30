@@ -3,8 +3,6 @@ name: CD — Deploy to Production
 on:
   push:
     branches: [ main ]
-  tags:
-    - 'v*.*.*'
 
 env:
   REGISTRY: ghcr.io
