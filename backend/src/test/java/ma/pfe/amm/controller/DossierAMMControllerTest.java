@@ -2,7 +2,9 @@ package ma.pfe.amm.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ma.pfe.amm.model.DossierAMM;
+import ma.pfe.amm.model.Role;
 import ma.pfe.amm.model.StatutDossier;
+import ma.pfe.amm.model.Utilisateur;
 import ma.pfe.amm.security.JwtUtil;
 import ma.pfe.amm.service.AuthService;
 import ma.pfe.amm.service.CamundaService;
@@ -16,7 +18,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -26,6 +27,7 @@ import java.util.NoSuchElementException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -74,31 +76,51 @@ class DossierAMMControllerTest {
         dossierTest.setDateDepot(LocalDateTime.now());
     }
 
+    private Utilisateur mockAdmin() {
+        Utilisateur u = new Utilisateur();
+        u.setId(1L);
+        u.setNom("Admin Test");
+        u.setEmail("admin@amm.ma");
+        u.setPassword("encoded");
+        u.setRole(Role.ADMIN);
+        u.setActif(true);
+        return u;
+    }
+
+    private Utilisateur mockLabo() {
+        Utilisateur u = new Utilisateur();
+        u.setId(4L);
+        u.setNom("Labo Test");
+        u.setEmail("labo@amm.ma");
+        u.setPassword("encoded");
+        u.setRole(Role.LABORATOIRE);
+        u.setNomLaboratoire("Pharma Maroc");
+        u.setActif(true);
+        return u;
+    }
+
     @Test
-    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /api/dossiers : retourne liste vide")
     void getTousDossiers_devraitRetournerListeVide() throws Exception {
         when(dossierService.getTousDossiers()).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/dossiers"))
+        mockMvc.perform(get("/api/dossiers").with(user(mockAdmin())))
                 .andExpect(status().isOk())
                 .andExpect(content().json("[]"));
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /api/dossiers : retourne liste avec dossiers")
     void getTousDossiers_devraitRetournerDossiers() throws Exception {
         when(dossierService.getTousDossiers()).thenReturn(List.of(dossierTest));
 
-        mockMvc.perform(get("/api/dossiers"))
+        mockMvc.perform(get("/api/dossiers").with(user(mockAdmin())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].reference").value("AMM-2024-0001"))
                 .andExpect(jsonPath("$[0].statut").value("DEPOSE"));
     }
 
     @Test
-    @WithMockUser(roles = "LABORATOIRE")
     @DisplayName("POST /api/dossiers : crée un dossier avec succès")
     void creerDossier_devraitCreerAvecSucces() throws Exception {
         when(dossierService.creerDossier(any(DossierAMM.class))).thenReturn(dossierTest);
@@ -106,6 +128,7 @@ class DossierAMMControllerTest {
         doNothing().when(notificationService).notifierDepot(any());
 
         mockMvc.perform(post("/api/dossiers")
+                .with(user(mockLabo()))
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dossierTest)))
@@ -114,31 +137,29 @@ class DossierAMMControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /api/dossiers/{id} : retourne 404 si introuvable")
     void getDossierById_devraitRetourner404() throws Exception {
         when(dossierService.getDossierById(99L))
                 .thenThrow(new NoSuchElementException("Dossier introuvable avec l'id : 99"));
 
-        mockMvc.perform(get("/api/dossiers/99"))
+        mockMvc.perform(get("/api/dossiers/99").with(user(mockAdmin())))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /api/dossiers/reference/{ref} : retourne dossier")
     void getDossierByReference_devraitRetournerDossier() throws Exception {
         when(dossierService.getDossierByReference("AMM-2024-0001")).thenReturn(dossierTest);
 
-        mockMvc.perform(get("/api/dossiers/reference/AMM-2024-0001"))
+        mockMvc.perform(get("/api/dossiers/reference/AMM-2024-0001").with(user(mockAdmin())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nomMedicament").value("Amoxicilline 500mg"));
     }
 
     @Test
-    @DisplayName("GET /api/dossiers : retourne 403 sans authentification")
-    void getDossiers_sansAuth_devraitRetourner403() throws Exception {
+    @DisplayName("GET /api/dossiers : retourne 401 sans authentification")
+    void getDossiers_sansAuth_devraitRetourner401() throws Exception {
         mockMvc.perform(get("/api/dossiers"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }
